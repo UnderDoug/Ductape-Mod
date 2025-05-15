@@ -63,7 +63,7 @@ namespace XRL.World.Parts
         }
         public override bool ModificationApplicable(GameObject Object)
         {
-            return Object != null && Object.HasStat("Hitpoints") && Object.GetModificationSlotsUsed() == RuleSettings.MAXIMUM_ITEM_MODS
+            return true || Object != null && Object.HasStat("Hitpoints") && Object.GetModificationSlotsUsed() == RuleSettings.MAXIMUM_ITEM_MODS
                 && (Object.UsesCharge()
                 || Object.HasPart<MeleeWeapon>()
                 || Object.HasPart<MissileWeapon>()
@@ -77,11 +77,19 @@ namespace XRL.World.Parts
         }
         public override void ApplyModification()
         {
-            if (ParentObject != null && ParentObject.HasStringProperty("EquipmentFrameColors"))
+            if (ParentObject != null && !ParentObject.HasStringProperty("EquipmentFrameColors"))
             {
                 ParentObject.SetStringProperty("EquipmentFrameColors", "yKyK");
             }
             base.ApplyModification();
+        }
+        public override void Attach()
+        {
+            if (ParentObject != null && !ParentObject.HasStringProperty("EquipmentFrameColors"))
+            {
+                ParentObject.SetStringProperty("EquipmentFrameColors", "yKyK");
+            }
+            base.Attach();
         }
 
         public static bool Jostle(GameObject Object, int DamageOneIn, out int JostledDamage, bool IsPassive = false)
@@ -90,12 +98,12 @@ namespace XRL.World.Parts
             if (Object != null)
             {
                 DamageOneIn *= IsPassive ? 10 : 1;
-                int roll = Stat.Roll(1, DamageOneIn);
+                int roll = Stat.Roll(1, DamageOneIn * 7) % 7;
                 bool byChance = roll == 1;
                 if (byChance)
                 {
                     int damageAmount = JostledDamage = (int)Math.Ceiling(Object.GetStat("Hitpoints").BaseValue * 0.25);
-                    UnityEngine.Debug.LogError($"{Object?.ShortDisplayNameStripped} took {damageAmount} damage being knocked around!");
+                    UnityEngine.Debug.LogError($"{Object?.ShortDisplayNameStripped} took {damageAmount} damage from being knocked around!");
                     return Object.TakeDamage(
                         Amount: damageAmount,
                         Message: "from being {{y|jostled}}!",
@@ -141,10 +149,18 @@ namespace XRL.World.Parts
         {
             if (TryJostle(ParentObject, DamageOneIn, out Jostled, out JostledDamage, !this.Jostled, IsPassive) && Equipper != null && Equipper.IsPlayerControlled())
             {
-                string message = $"Your {ParentObject.ShortDisplayName} took {JostledDamage} from being knocked around!";
+                bool isEquipped = Equipper != null;
+                string message = $"Your {(isEquipped ? "equipped " : "")}{ParentObject.ShortDisplayName} took {JostledDamage} from being knocked around!";
                 if (Hitpoints.Value <= (int)Math.Ceiling(Hitpoints.BaseValue * 0.25))
                 {
-                    message += $" It looks about ready to fall apart!";
+                    if (ParentObject.IsBroken())
+                    {
+                        message += " It's {{r|busted}}!";
+                    }
+                    else
+                    {
+                        message += $" It looks about ready to fall apart!";
+                    }
                 }
                 Popup.Show(message);
                 AutoAct.Interrupt();
@@ -186,7 +202,7 @@ namespace XRL.World.Parts
                 || ID == GetDisplayNameEvent.ID
                 || (wantShieldBlock && ID == AfterShieldBlockEvent.ID)
                 || (isPoweredDrawing && ID == ChargeUsedEvent.ID)
-                || (wantGetWeaponMeleePenetration && ID == GetWeaponMeleePenetrationEvent.ID);
+                || (wantGetWeaponMeleePenetration && ID == GetDefenderHitDiceEvent.ID);
         }
         public override bool HandleEvent(GetDisplayNameEvent E)
         {
@@ -206,7 +222,7 @@ namespace XRL.World.Parts
             TryJostle(out Jostled, !isProperlyEquipped);
             return base.HandleEvent(E);
         }
-        public override bool HandleEvent(GetWeaponMeleePenetrationEvent E)
+        public override bool HandleEvent(GetDefenderHitDiceEvent E)
         {
             TryJostle(out Jostled);
             return base.HandleEvent(E);
@@ -215,21 +231,6 @@ namespace XRL.World.Parts
         {
             TryJostle(out Jostled);
             return base.HandleEvent(E);
-        }
-
-        [HarmonyPrefix]
-        [HarmonyPatch(
-            declaringType: typeof(ItemModding),
-            methodName: nameof(ItemModding.ModificationApplicable),
-            argumentTypes: new Type[] { typeof(string), typeof(GameObject), typeof(GameObject), typeof(string) },
-            argumentVariations: new ArgumentType[] { ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Normal }
-            )]
-        public static void ModificationApplicable_AllowFourth_Prefix(string Name, GameObject Object, GameObject Actor = null, string Key = null)
-        {
-            if (Name == nameof(Mod_UD_Ductape))
-            {
-                Key = nameof(Mod_UD_Ductape);
-            }
         }
     }
 }
