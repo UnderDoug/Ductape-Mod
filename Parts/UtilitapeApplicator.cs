@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Security.Policy;
 using System.Text;
+
 using XRL.UI;
 using XRL.World.Tinkering;
 
@@ -68,6 +68,7 @@ namespace XRL.World.Parts
                 {
                     gameObject.MakeUnderstood();
                 }
+                E.Actor.PlayWorldOrUISound("Sounds/Interact/sfx_interact_bandage_apply", null);
                 ParentObject.Destroy();
                 gameObject.CheckStack();
             }

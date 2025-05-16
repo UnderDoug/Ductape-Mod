@@ -19,10 +19,9 @@ namespace UD_Ductape_Mod
         }
         private static Dictionary<string, string> Directory => new()
         {
-            { nameof(ObnoxiousYelling), Label("ObnoxiousYelling") },
             { nameof(DebugVerbosity), Label("DebugVerbosity") },
             { nameof(DebugIncludeInMessage), Label("DebugIncludeInMessage") },
-            { nameof(DuctapeModDescriptions), Label("DebugDuctapeModDescriptions") },
+            { nameof(DebugDuctapeModDescriptions), Label("DebugDuctapeModDescriptions") },
             { nameof(AnyNumberOfMods), Label("AnyNumberOfMods") },
             { nameof(ScalingDamageChance), Label("ScalingDamageChance") },
         };
@@ -99,15 +98,15 @@ namespace UD_Ductape_Mod
             }
         }
 
-        public static bool DuctapeModDescriptions
+        public static bool DebugDuctapeModDescriptions
         {
             get
             {
-                return GetBoolOption($"{nameof(DuctapeModDescriptions)}", false);
+                return GetBoolOption($"{nameof(DebugDuctapeModDescriptions)}", false);
             }
             set
             {
-                SetBoolOption(nameof(DuctapeModDescriptions), value);
+                SetBoolOption(nameof(DebugDuctapeModDescriptions), value);
             }
         }
 
