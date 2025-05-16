@@ -41,8 +41,6 @@ namespace UD_Ductape_Mod.Harmony
                 __result = propertyOrTag;
                 return;
             }
-
-            __result = null;
         }
     }
 }
