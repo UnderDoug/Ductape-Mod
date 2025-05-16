@@ -10,6 +10,7 @@
     <part Name="UtilitapeApplicator" />
     <part Name="ItemElements" Elements="scholarship::1" />
     <removepart Name="Metal" />
+    <removepart Name="Examiner" />
     <part Name="Springy" Factor="0.8" />
     <tag Name="Tier" Value="2" />
     <tag Name="TinkerCategory" Value="utility" />

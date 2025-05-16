@@ -5,6 +5,12 @@ using System.Text;
 using XRL.UI;
 using XRL.World.Tinkering;
 
+using UD_Ductape_Mod;
+using static UD_Ductape_Mod.Const;
+
+using Debug = UD_Ductape_Mod.Debug;
+using Options = UD_Ductape_Mod.Options;
+
 namespace XRL.World.Parts
 {
     [Serializable]
@@ -32,14 +38,7 @@ namespace XRL.World.Parts
                 List<GameObject> objects = E.Actor.Inventory.GetObjects((GameObject o) => CanTape(o, E.Actor));
                 if (objects.Count == 0)
                 {
-                    if (ParentObject.Understood())
-                    {
-                        E.Actor.Fail(ParentObject.Does("do", int.MaxValue, null, null, null, AsIfKnown: false, Single: false, NoConfusion: false, NoColor: false, Stripped: false, WithoutTitles: true, Short: true, BaseOnly: false, WithIndefiniteArticle: false, null, IndicateHidden: false, Pronoun: true, SecondPerson: true, null) + " nothing.");
-                    }
-                    else
-                    {
-                        E.Actor.Fail("You have no items that need utilitape.");
-                    }
+                    E.Actor.Fail("You have no items that need utilitape.");
                     return false;
                 }
                 GameObject gameObject = PickItem.ShowPicker(objects, null, PickItem.PickItemDialogStyle.SelectItemDialog, E.Actor);
@@ -77,7 +76,7 @@ namespace XRL.World.Parts
 
         private bool CanTape(GameObject Item, GameObject Actor)
         {
-            return ItemModding.ModificationApplicable(nameof(Mod_UD_Ductape), Item, Actor) && Item.GetModificationSlotsUsed() == 3;
+            return ItemModding.ModificationApplicable(nameof(Mod_UD_Ductape), Item, Actor);
         }
     }
 }

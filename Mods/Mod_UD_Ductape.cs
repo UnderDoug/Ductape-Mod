@@ -5,19 +5,25 @@ using System.Collections.Generic;
 using System.Text;
 
 using XRL.World;
-
-using UD_Ductape_Mod;
 using XRL.Rules;
 using XRL.UI;
 using XRL.World.Capabilities;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using XRL.World.Tinkering;
+
+using UD_Ductape_Mod;
+using static UD_Ductape_Mod.Const;
+
+using Debug = UD_Ductape_Mod.Debug;
+using Options = UD_Ductape_Mod.Options;
 
 namespace XRL.World.Parts
 {
     [Serializable]
     public class Mod_UD_Ductape : IModification
     {
+        private static bool AnyNumberOfMods => Options.AnyNumberOfMods;
+        private static bool ScalingDamageChance => Options.ScalingDamageChance;
+
         public int DamageOneIn = 500; // 2000
 
         public bool Jostled = false;
@@ -49,6 +55,10 @@ namespace XRL.World.Parts
             : base(Tier)
         {
         }
+        public override bool AllowStaticRegistration()
+        {
+            return true;
+        }
         public override int GetModificationSlotUsage()
         {
             return -1;
@@ -63,7 +73,37 @@ namespace XRL.World.Parts
         }
         public override bool ModificationApplicable(GameObject Object)
         {
-            return true || Object != null && Object.HasStat("Hitpoints") && Object.GetModificationSlotsUsed() == RuleSettings.MAXIMUM_ITEM_MODS
+            return CanTape(Object);
+        }
+        public bool CanTape(GameObject Object, string Context = "")
+        {
+            if (Context == "Internal" && Object != null)
+            {
+                Debug.Entry(4,
+                    $"{nameof(Mod_UD_Ductape)}." +
+                    $"{nameof(CanTape)}(" +
+                    $"{Object.ShortDisplayNameStripped})",
+                    Indent: Debug.LastIndent + 1, Toggle: true
+                    );
+            }
+            
+            // AnyNum || ModsIsMax  ? Result
+            //   true || true       ? true
+            //   true || false      ? true
+            //  false || true       ? true
+            //  false || false      ? false
+
+            bool notNull = Object != null;
+
+            bool hasHitpoints =
+                notNull
+             && Object.HasStat("Hitpoints");
+
+            bool correctSlotsUsed =
+                notNull
+             &&  true || (AnyNumberOfMods || (Object.GetModificationSlotsUsed() == RuleSettings.MAXIMUM_ITEM_MODS));
+
+            return notNull && hasHitpoints && correctSlotsUsed
                 && (Object.UsesCharge()
                 || Object.HasPart<MeleeWeapon>()
                 || Object.HasPart<MissileWeapon>()
@@ -98,12 +138,31 @@ namespace XRL.World.Parts
             if (Object != null)
             {
                 DamageOneIn *= IsPassive ? 10 : 1;
+                if (ScalingDamageChance)
+                {
+                    int modCount = Object.GetModificationSlotsUsed();
+                    int multiplier = 1;
+                    if (modCount < 0)
+                    {
+                        multiplier = 0;
+                    }
+                    else
+                    {
+                        multiplier += 4 - Math.Min(4, Object.GetModificationSlotsUsed());
+                    }
+                    DamageOneIn *= multiplier;
+                }
                 int roll = Stat.Roll(1, DamageOneIn * 7) % 7;
                 bool byChance = roll == 1;
                 if (byChance)
                 {
                     int damageAmount = JostledDamage = (int)Math.Ceiling(Object.GetStat("Hitpoints").BaseValue * 0.25);
-                    UnityEngine.Debug.LogError($"{Object?.ShortDisplayNameStripped} took {damageAmount} damage from being knocked around!");
+                    Debug.Entry(4,
+                        $"{Object?.ShortDisplayNameStripped} took " +
+                        $"{damageAmount} damage from being knocked around!",
+                        Indent: 0, Toggle: true
+                        );
+
                     return Object.TakeDamage(
                         Amount: damageAmount,
                         Message: "from being {{y|jostled}}!",
@@ -125,7 +184,7 @@ namespace XRL.World.Parts
                 }
                 else
                 {
-                    UnityEngine.Debug.LogError($"{Object?.ShortDisplayNameStripped} Jostled! ({roll})");
+                    Debug.Entry(4, $"{Object?.ShortDisplayNameStripped} Jostled! ({roll})", Indent: 0, Toggle: true);
                 }
             }
             return false;
@@ -147,23 +206,27 @@ namespace XRL.World.Parts
         }
         public bool TryJostle(out bool Jostled, out int JostledDamage, bool IsPassive = false)
         {
-            if (TryJostle(ParentObject, DamageOneIn, out Jostled, out JostledDamage, !this.Jostled, IsPassive) && Equipper != null && Equipper.IsPlayerControlled())
+            if (TryJostle(ParentObject, DamageOneIn, out Jostled, out JostledDamage, !this.Jostled, IsPassive))
             {
                 bool isEquipped = Equipper != null;
-                string message = $"Your {(isEquipped ? "equipped " : "")}{ParentObject.ShortDisplayName} took {JostledDamage} from being knocked around!";
-                if (Hitpoints.Value <= (int)Math.Ceiling(Hitpoints.BaseValue * 0.25))
+                if (isEquipped && Equipper.IsPlayerControlled())
                 {
-                    if (ParentObject.IsBroken())
+                    string message = $"Your {(isEquipped ? "equipped " : "")}{ParentObject.ShortDisplayName} took {JostledDamage} from being knocked around!";
+                    if (Hitpoints.Value <= (int)Math.Ceiling(Hitpoints.BaseValue * 0.25))
                     {
-                        message += " It's {{r|busted}}!";
+                        if (ParentObject.IsBroken())
+                        {
+                            message += " It's {{r|busted}}!";
+                        }
+                        else
+                        {
+                            message += $" It looks about ready to fall apart!";
+                        }
                     }
-                    else
-                    {
-                        message += $" It looks about ready to fall apart!";
-                    }
+                    Popup.Show(message);
+                    AutoAct.Interrupt();
                 }
-                Popup.Show(message);
-                AutoAct.Interrupt();
+                return true;
             }
             return false;
         }
@@ -184,12 +247,12 @@ namespace XRL.World.Parts
         }
         public override void Register(GameObject Object, IEventRegistrar Registrar)
         {
+            // Registrar.Register(CanBeModdedEvent.ID, EventOrder.EXTREMELY_EARLY);
             base.Register(Object, Registrar);
-            // Registrar.Register(Event.ID, EventOrder.EXTREMELY_EARLY);
         }
         public override bool WantEvent(int ID, int cascade)
         {
-            bool wantGetWeaponMeleePenetration =
+            bool wantGetAttackerHitDice =
                 isProperlyEquipped
              && isMeleeWeapon;
 
@@ -202,7 +265,12 @@ namespace XRL.World.Parts
                 || ID == GetDisplayNameEvent.ID
                 || (wantShieldBlock && ID == AfterShieldBlockEvent.ID)
                 || (isPoweredDrawing && ID == ChargeUsedEvent.ID)
-                || (wantGetWeaponMeleePenetration && ID == GetDefenderHitDiceEvent.ID);
+                || (wantGetAttackerHitDice && ID == GetAttackerHitDiceEvent.ID);
+        }
+        public override bool HandleEvent(GetShortDescriptionEvent E)
+        {
+            E.Postfix.AppendRules(GetDescription());
+            return base.HandleEvent(E);
         }
         public override bool HandleEvent(GetDisplayNameEvent E)
         {
@@ -210,11 +278,6 @@ namespace XRL.World.Parts
             {
                 E.AddClause("{{y|held together by utilitape}}", PRIORITY_ADJUST_VERY_LARGE);
             }
-            return base.HandleEvent(E);
-        }
-        public override bool HandleEvent(GetShortDescriptionEvent E)
-        {
-            E.Postfix.AppendRules(GetDescription());
             return base.HandleEvent(E);
         }
         public override bool HandleEvent(ChargeUsedEvent E)
