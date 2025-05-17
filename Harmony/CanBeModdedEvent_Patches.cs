@@ -19,6 +19,8 @@ namespace UD_Ductape_Mod.Harmony
     [HarmonyPatch]
     public static class CanBeModdedEvent_Patches
     {
+        private static bool doDebug => false;
+
         [HarmonyPostfix]
         [HarmonyPatch(
             declaringType: typeof(CanBeModdedEvent),
@@ -34,7 +36,7 @@ namespace UD_Ductape_Mod.Harmony
                 $"Actor: {Actor?.ShortDisplayNameWithoutTitlesStripped ?? NULL}, " +
                 $"Item: {Item?.ShortDisplayNameWithoutTitlesStripped ?? NULL}, " +
                 $"ModName: {ModName ?? NULL})",
-                Indent: Debug.LastIndent, Toggle: true
+                Indent: Debug.LastIndent, Toggle: doDebug
                 );
 
             if (ModName != null)

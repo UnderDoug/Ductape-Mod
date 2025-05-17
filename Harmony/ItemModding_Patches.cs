@@ -17,6 +17,8 @@ namespace UD_Ductape_Mod.Harmony
     [HarmonyPatch]
     public static class ItemModding_Patches
     {
+        private static bool doDebug => false;
+
         [HarmonyPostfix]
         [HarmonyPatch(
             declaringType: typeof(ItemModding),
@@ -33,7 +35,7 @@ namespace UD_Ductape_Mod.Harmony
                 $"{nameof(ItemModding.ModKey)}(" +
                 $"Object: {Object?.ShortDisplayNameWithoutTitlesStripped ?? NULL}, " +
                 $"propertyOrTag: {propertyOrTag?.Quote()})",
-                Indent: Debug.LastIndent, Toggle: true
+                Indent: Debug.LastIndent, Toggle: doDebug
                 );
 
             if (!propertyOrTag.IsNullOrEmpty() && propertyOrTag != "None")
