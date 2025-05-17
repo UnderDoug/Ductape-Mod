@@ -62,7 +62,7 @@
   <option
         ID="Option_UD_Ductape_Mod_AnyNumberOfMods"
         DisplayText="Enable &quot;held together by utilitape&quot; to be applied before an item has the maximum mods applied."
-        Category="UD Ductape Mod"
+        Category="Mod: UD Ductape Mod"
         Type="Checkbox"
         Default="No" >
     <helptext>

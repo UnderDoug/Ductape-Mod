@@ -59,6 +59,7 @@ namespace XRL.World.Parts
                     gameObject.CheckStack();
                     return false;
                 }
+                E.Actor.PlayWorldOrUISound("Sounds/Interact/sfx_interact_bandage_apply", null);
                 if (E.Actor.IsPlayer())
                 {
                     Popup.Show(message);
@@ -68,7 +69,6 @@ namespace XRL.World.Parts
                 {
                     gameObject.MakeUnderstood();
                 }
-                E.Actor.PlayWorldOrUISound("Sounds/Interact/sfx_interact_bandage_apply", null);
                 ParentObject.Destroy();
                 gameObject.CheckStack();
             }
