@@ -29,9 +29,11 @@ namespace XRL.World.Parts
 
         public static readonly string DeathReason = "jostled apart";
 
-        public int DamageOneIn = 500; // 2000
+        public int DamageOneIn = 100;
 
         public bool Jostled = false;
+
+        private double StoredTimeTick = 0; 
 
         public int LastJostledDamage = 0;
 
@@ -47,7 +49,7 @@ namespace XRL.World.Parts
 
         private bool isEquipment => isMeleeWeapon || isMissileWeapon || isThrownWeapon || isShield || isArmor;
 
-        private bool isPoweredDrawing => ParentObject != null && ParentObject.UsesCharge();
+        private bool isPowerDrawing => ParentObject != null && ParentObject.UsesCharge();
 
         private bool isProperlyEquipped => ParentObject != null && ParentObject.IsEquippedProperly();
 
@@ -58,6 +60,18 @@ namespace XRL.World.Parts
         private GameObject Equipper => ParentObject?.Equipped;
 
         private GameObject Holder => ParentObject?.Holder;
+
+        private List<string> StringyJostleEventIDs => new()
+        {
+            "CommandFireMissile",
+            "BeforeThrown",
+        };
+        private Dictionary<Func<bool>, int> EquipperJostleEventIDs => new()
+        {
+            { delegate(){ return isArmor && isProperlyEquipped; }, EnteredCellEvent.ID },
+            { delegate(){ return isArmor && isProperlyEquipped; }, GetDefenderHitDiceEvent.ID },
+        };
+
 
         public Mod_UD_Ductape()
             : base()
@@ -131,7 +145,7 @@ namespace XRL.World.Parts
         }
         public override void ApplyModification()
         {
-            if (ParentObject != null && !ParentObject.HasStringProperty("EquipmentFrameColors"))
+            if (ParentObject != null && !ParentObject.HasTagOrProperty("EquipmentFrameColors"))
             {
                 ParentObject.SetStringProperty("EquipmentFrameColors", "yKyK");
             }
@@ -139,53 +153,62 @@ namespace XRL.World.Parts
         }
         public override void Attach()
         {
-            if (ParentObject != null && !ParentObject.HasStringProperty("EquipmentFrameColors"))
+            if (ParentObject != null && !ParentObject.HasTagOrProperty("EquipmentFrameColors"))
             {
                 ParentObject.SetStringProperty("EquipmentFrameColors", "yKyK");
             }
             base.Attach();
         }
 
+        public static int GetDamageOneIn(GameObject Object, int DamageOneIn, bool IsPassive)
+        {
+            int output = DamageOneIn * (IsPassive ? 10 : 1);
+            if (ScalingDamageChance)
+            {
+                int modCount = Object.GetModificationSlotsUsed();
+                int multiplier = 1;
+                if (modCount < 0)
+                {
+                    multiplier = 0;
+                }
+                else
+                {
+                    multiplier += 4 - Math.Min(4, Object.GetModificationSlotsUsed());
+                }
+                output *= multiplier;
+            }
+            return output;
+        }
+        public int GetDamageOneIn(bool IsPassive)
+        {
+            return GetDamageOneIn(ParentObject, DamageOneIn, IsPassive);
+        }
+
         public static bool Jostle(GameObject Object, int DamageOneIn, out int JostledDamage, bool IsPassive = false, MinEvent FromEvent = null, Event FromSEvent = null)
         {
+            int indent = Debug.LastIndent + 1;
             Debug.Entry(4, 
-                $"static " + 
-                $"{nameof(Jostle)}(" + 
-                $"{nameof(Object)}, " + 
-                $"${nameof(DamageOneIn)}, " +
-                $"out {nameof(JostledDamage)}, " +
-                $"{nameof(IsPassive)} = false" +
-                $" FromEvent: {FromEvent?.GetType()?.Name ?? NULL}," +
-                $" FromSEvent: {FromSEvent?.ID ?? NULL})",
-                Indent: Debug.LastIndent + 1, Toggle: true);
+                $"* {nameof(Jostle)}("
+                + $" FromEvent: {FromEvent?.GetType()?.Name ?? NULL},"
+                + $" FromSEvent: {FromSEvent?.ID ?? NULL})",
+                Indent: indent, Toggle: true);
 
             JostledDamage = 0;
             if (Object != null)
             {
-                DamageOneIn *= IsPassive ? 10 : 1;
-                if (ScalingDamageChance)
-                {
-                    int modCount = Object.GetModificationSlotsUsed();
-                    int multiplier = 1;
-                    if (modCount < 0)
-                    {
-                        multiplier = 0;
-                    }
-                    else
-                    {
-                        multiplier += 4 - Math.Min(4, Object.GetModificationSlotsUsed());
-                    }
-                    DamageOneIn *= multiplier;
-                }
-                int roll = Stat.Roll(1, DamageOneIn * 7) % DamageOneIn;
+                int damageOneIn = GetDamageOneIn(Object, DamageOneIn, IsPassive);
+                int damageOneInPadding = damageOneIn.ToString().Length;
+                int roll = Stat.Roll(1, damageOneIn * 7) % DamageOneIn;
+                string rollString = roll.ToString().PadLeft(damageOneInPadding, ' ');
                 bool byChance = roll == 1;
                 if (byChance)
                 {
                     int damageAmount = JostledDamage = (int)Math.Ceiling(Object.GetStat("Hitpoints").BaseValue * 0.25);
                     Debug.Entry(4,
-                        $"{Object?.ShortDisplayNameStripped} took " +
-                        $"{damageAmount} damage from being knocked around!",
-                        Indent: Debug.LastIndent + 1, Toggle: true
+                        $"({rollString}/{damageOneIn})" +
+                        $" {Object?.DebugName ?? NULL} took" +
+                        $" {damageAmount} damage from being knocked around!",
+                        Indent: indent + 1, Toggle: true
                         );
 
                     return Object.TakeDamage(
@@ -209,7 +232,11 @@ namespace XRL.World.Parts
                 }
                 else
                 {
-                    Debug.Entry(4, $"{Object?.ShortDisplayNameStripped} Jostled! ({roll})", Indent: Debug.LastIndent + 1, Toggle: true);
+                    Debug.Entry(4, 
+                        $"({rollString}/{damageOneIn})" +
+                        $" {Object?.DebugName ?? NULL}" +
+                        $" was Jostled! ", 
+                        Indent: indent + 1, Toggle: true);
                 }
             }
             return false;
@@ -220,19 +247,6 @@ namespace XRL.World.Parts
         }
         public static bool TryJostle(GameObject Object, int DamageOneIn, out bool Jostled, out int JostledDamage, bool CanJostle = true, bool IsPassive = false, MinEvent FromEvent = null, Event FromSEvent = null)
         {
-            Debug.Entry(4,
-                $"static " +
-                $"{nameof(TryJostle)}(" +
-                $"{nameof(Object)}, " +
-                $"{nameof(DamageOneIn)}, " +
-                $"out {nameof(Jostled)}, " +
-                $"out {nameof(JostledDamage)}, " +
-                $"{nameof(CanJostle)} = true, " +
-                $"{nameof(IsPassive)} = false" +
-                $" FromEvent: {FromEvent?.GetType()?.Name ?? NULL}," +
-                $" FromSEvent: {FromSEvent?.ID ?? NULL})",
-                Indent: 0, Toggle: true);
-
             Jostled = false;
             JostledDamage = 0;
             if (Object != null && CanJostle)
@@ -271,7 +285,7 @@ namespace XRL.World.Parts
                 {
                     if (ParentObject.IsBroken())
                     {
-                        message += " =pronouns.Subjective==verb:'s:afterpronoun= {{r|busted}}!";
+                        message += " =pronouns.Subjective='s {{r|busted}}!";
                     }
                     else
                     {
@@ -297,20 +311,17 @@ namespace XRL.World.Parts
         }
         public override void TurnTick(long TimeTick, int Amount)
         {
-            if (Hitpoints.Value > 0 && !ParentObject.IsInGraveyard())
+            if (TimeTick - StoredTimeTick > 3 || (Hitpoints.Value > 0 && !ParentObject.IsInGraveyard()))
             {
                 Jostled = false;
+                StoredTimeTick = TimeTick;
             }
             base.TurnTick(TimeTick, Amount);
         }
-        private static List<string> StringyJostleEventIDs => new()
-        {
-            "CommandFireMissile",
-            "BeforeThrown",
-        };
         public override void Register(GameObject Object, IEventRegistrar Registrar)
         {
             Registrar.Register(BeforeDestroyObjectEvent.ID, EventOrder.EXTREMELY_EARLY);
+            Registrar.Register(UseChargeEvent.ID, EventOrder.EXTREMELY_EARLY);
             foreach (string eventID in StringyJostleEventIDs)
             {
                 Registrar.Register(eventID);
@@ -319,16 +330,6 @@ namespace XRL.World.Parts
         }
         public override bool WantEvent(int ID, int cascade)
         {
-            bool hasEquipper =
-                Equipper != null
-             && isEquipment
-             && isProperlyEquipped;
-
-            bool wantChargeUsed =
-                !Jostled
-             && !hasEquipper
-             && isPoweredDrawing;
-
             bool wantGetWeaponHitDice =
                 !Jostled
              && isProperlyEquipped
@@ -358,9 +359,8 @@ namespace XRL.World.Parts
             return base.WantEvent(ID, cascade)
                 || ID == GetDisplayNameEvent.ID
                 || ID == GetShortDescriptionEvent.ID
-                || (hasEquipper && ID == EquippedEvent.ID)
-                || (hasEquipper && ID == UnequippedEvent.ID)
-                || (wantChargeUsed && ID == ChargeUsedEvent.ID)
+                || ID == EquippedEvent.ID
+                || ID == UnequippedEvent.ID
                 || (wantGetWeaponHitDice && ID == GetWeaponHitDiceEvent.ID)
                 || (wantBeforeFireMissileWeapons && ID == BeforeFireMissileWeaponsEvent.ID)
                 || (wantGetThrownWeaponFlexPhaseProvider && ID == GetThrownWeaponFlexPhaseProviderEvent.ID)
@@ -412,7 +412,12 @@ namespace XRL.World.Parts
                         jostleSources += source;
                     }
                 }
-                
+
+                bool hasEquipper =
+                    Equipper != null
+                 && isEquipment
+                 && isProperlyEquipped;
+
                 SB.AppendColored("M", $"Utilitape").Append(": ");
                 SB.AppendLine();
                 SB.AppendColored("W", $"Options").AppendLine();
@@ -426,8 +431,14 @@ namespace XRL.World.Parts
                 SB.Append(VANDR).Append($"[{Jostled.YehNah(true)}]{HONLY}{nameof(Jostled)}: ")
                     .AppendColored("B", $"{Jostled}");
                 SB.AppendLine();
-                SB.Append(VANDR).Append("(").AppendColored("g", $"{DamageOneIn * (!isProperlyEquipped ? 10 : 1)}")
+                SB.Append(VANDR).Append("(").AppendColored("C", $"{StoredTimeTick}-{The.Game.TimeTicks}|{The.Game.TimeTicks-StoredTimeTick}")
+                    .Append($"){HONLY}Current{nameof(The.Game.TimeTicks)}-{nameof(StoredTimeTick)}|Difference");
+                SB.AppendLine();
+                SB.Append(VANDR).Append("(").AppendColored("g", $"{GetDamageOneIn(!hasEquipper)}")
                     .Append($"){HONLY}{nameof(DamageOneIn)}");
+                SB.AppendLine();
+                SB.Append(VANDR).Append($"[{isProperlyEquipped.YehNah(true)}]{HONLY}isPassive: ")
+                    .AppendColored("B", $"{!hasEquipper}");
                 SB.AppendLine();
                 SB.Append(VANDR).Append("(").AppendColored("c", $"{LastJostledDamage}")
                     .Append($"){HONLY}{nameof(LastJostledDamage)}");
@@ -454,8 +465,8 @@ namespace XRL.World.Parts
                 SB.Append(VANDR).Append($"[{isArmor.YehNah()}]{HONLY}{nameof(isArmor)}: ")
                     .AppendColored("B", $"{isArmor}");
                 SB.AppendLine();
-                SB.Append(VANDR).Append($"[{isPoweredDrawing.YehNah()}]{HONLY}{nameof(isPoweredDrawing)}: ")
-                    .AppendColored("B", $"{isPoweredDrawing}");
+                SB.Append(VANDR).Append($"[{isPowerDrawing.YehNah()}]{HONLY}{nameof(isPowerDrawing)}: ")
+                    .AppendColored("B", $"{isPowerDrawing}");
                 SB.AppendLine();
                 SB.Append(TANDR).Append($"[{isProperlyEquipped.YehNah()}]{HONLY}{nameof(isProperlyEquipped)}: ")
                     .AppendColored("B", $"{isProperlyEquipped}");
@@ -472,31 +483,41 @@ namespace XRL.World.Parts
         }
         public override bool HandleEvent(EquippedEvent E)
         {
-            if (ParentObject.EquippedProperlyBy() == E.Actor && isArmor)
+            foreach ((Func<bool> check, int eventID) in  EquipperJostleEventIDs)
             {
-                E.Actor.RegisterEvent(this, ObjectEnteredCellEvent.ID);
-                E.Actor.RegisterEvent(this, GetDefenderMeleePenetrationEvent.ID);
+                if (check.Invoke()) E.Actor.RegisterEvent(this, eventID);
             }
             return base.HandleEvent(E);
         }
         public override bool HandleEvent(UnequippedEvent E)
         {
-            if (isArmor)
+            foreach ((Func<bool> _, int eventID) in EquipperJostleEventIDs)
             {
-                E.Actor.UnregisterEvent(this, ObjectEnteredCellEvent.ID);
-                E.Actor.UnregisterEvent(this, GetDefenderMeleePenetrationEvent.ID);
+                E.Actor.UnregisterEvent(this, eventID);
             }
             return base.HandleEvent(E);
         }
         public override bool HandleEvent(ChargeUsedEvent E)
         {
-            Debug.Entry(4,
+            bool hasEquipper =
+                Equipper != null
+             && isEquipment
+             && isProperlyEquipped;
+
+            bool wantChargeUsed =
+                !Jostled
+             && isPowerDrawing;
+
+            if (wantChargeUsed)
+            {
+                Debug.Entry(4,
                 $"{nameof(Mod_UD_Ductape)}." +
                 $"{nameof(HandleEvent)}(6" +
                 $"{nameof(ChargeUsedEvent)} E)",
                 Indent: 0, Toggle: true);
 
-            TryJostle(out Jostled, !isProperlyEquipped, FromEvent: E);
+                TryJostle(out Jostled, !hasEquipper, FromEvent: E);
+            }
             return base.HandleEvent(E);
         }
         public override bool HandleEvent(GetWeaponHitDiceEvent E)
@@ -515,18 +536,18 @@ namespace XRL.World.Parts
             Debug.Entry(4,
                 $"{nameof(Mod_UD_Ductape)}." +
                 $"{nameof(HandleEvent)}(" +
-                $"{nameof(GetMissileWeaponPerformanceEvent)} E)",
+                $"{nameof(BeforeFireMissileWeaponsEvent)} E)",
                 Indent: 0, Toggle: true);
 
             TryJostle(out Jostled, FromEvent: E);
             return base.HandleEvent(E);
         }
-        public override bool HandleEvent(GetThrownWeaponPerformanceEvent E)
+        public override bool HandleEvent(GetThrownWeaponFlexPhaseProviderEvent E)
         {
             Debug.Entry(4,
                 $"{nameof(Mod_UD_Ductape)}." +
                 $"{nameof(HandleEvent)}(" +
-                $"{nameof(GetThrownWeaponPerformanceEvent)} E)",
+                $"{nameof(GetThrownWeaponFlexPhaseProviderEvent)} E)",
                 Indent: 0, Toggle: true);
 
             TryJostle(out Jostled, FromEvent: E);
@@ -543,7 +564,7 @@ namespace XRL.World.Parts
             TryJostle(out Jostled, FromEvent: E);
             return base.HandleEvent(E);
         }
-        public override bool HandleEvent(ObjectEnteredCellEvent E)
+        public override bool HandleEvent(EnteredCellEvent E)
         {
             Debug.Entry(4,
                 $"{nameof(Mod_UD_Ductape)}." +
@@ -554,11 +575,22 @@ namespace XRL.World.Parts
             TryJostle(out Jostled, FromEvent: E);
             return base.HandleEvent(E);
         }
+        public override bool HandleEvent(GetDefenderHitDiceEvent E)
+        {
+            Debug.Entry(4,
+                $"{nameof(Mod_UD_Ductape)}." +
+                $"{nameof(HandleEvent)}(" +
+                $"{nameof(GetDefenderHitDiceEvent)} E)",
+                Indent: 0, Toggle: true);
+
+            TryJostle(out Jostled, FromEvent: E);
+            return base.HandleEvent(E);
+        }
         public override bool FireEvent(Event E)
         {
             if (!Jostled && StringyJostleEventIDs.Contains(E.ID))
             {
-                TryJostle(out Jostled);
+                TryJostle(out Jostled, FromSEvent: E);
             }
             return base.FireEvent(E);
         }

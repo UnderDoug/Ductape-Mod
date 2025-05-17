@@ -16,12 +16,13 @@ namespace XRL.World.Parts
     [Serializable]
     public class UtilitapeApplicator : IScribedPart
     {
+        public static readonly string APPLIED_SOUND = "sfx_equip_material_generic_cloth"; // "Sounds/Interact/sfx_interact_bandage_apply";
+
         public override bool WantEvent(int ID, int Cascade)
         {
             return base.WantEvent(ID, Cascade)
                 || ID == InventoryActionEvent.ID;
         }
-
         public override bool HandleEvent(InventoryActionEvent E)
         {
             if (E.Command == "Apply")
@@ -59,11 +60,11 @@ namespace XRL.World.Parts
                     gameObject.CheckStack();
                     return false;
                 }
-                E.Actor.PlayWorldOrUISound("Sounds/Interact/sfx_interact_bandage_apply", null);
+                E.Actor.PlayWorldOrUISound(APPLIED_SOUND, null);
                 if (E.Actor.IsPlayer())
                 {
                     Popup.Show(message);
-                    Popup.Show(ParentObject.Does("get", int.MaxValue, null, null, null, AsIfKnown: false, Single: true, NoConfusion: false, NoColor: false, Stripped: false, WithoutTitles: true, Short: true, BaseOnly: false, WithIndefiniteArticle: false, null, IndicateHidden: false, Pronoun: false, SecondPerson: true, null) + " used up entirely.");
+                    Popup.Show(GameText.VariableReplace($"=object.T used the entire roll of =subject.name=!", ParentObject, The.Player));
                 }
                 if (flag && !gameObject.Understood())
                 {
