@@ -1,4 +1,4 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <mods>
-  <mod Part="Mod_UD_Ductape" Tables="CommonMods" Rarity="C" TinkerTier="4" CanAutoTinker="true" TinkerDisplayName="held together by utility tape" Value="0.9" TinkerCategory="utility" Description="Held together by utility tape: this item can be modified one additional time (excluding this modification) but has a small chance whenever it's used to take damage equal to 1/4 of its max HP." />
+  <mod Part="Mod_UD_Ductape" Tables="CommonMods" Rarity="C" TinkerTier="4" TinkerAllowed="false" CanAutoTinker="true" TinkerDisplayName="held together by utility tape" Value="0.9" TinkerCategory="utility" Description="Held together by utility tape: this item can be modified one additional time (excluding this modification) but has a small chance whenever it's used to take damage equal to 1/4 of its max HP." />
 </mods>

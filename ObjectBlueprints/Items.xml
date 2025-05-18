@@ -14,7 +14,7 @@
     <part Name="Springy" Factor="0.8" />
     <tag Name="Tier" Value="2" />
     <tag Name="TinkerCategory" Value="utility" />
-    <part Name="TinkerItem" Bits="00" CanDisassemble="true" CanBuild="false" />
+    <part Name="TinkerItem" Bits="000" Ingredient="Bandage" CanDisassemble="true" CanBuild="true" />
     <tag Name="Gift" Value="*noinherit" />
     <tag Name="GiftSkillRestriction" Value="Tinkering_Scavenger" />
     <stag Name="Contemporary" />
