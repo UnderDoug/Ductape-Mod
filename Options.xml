@@ -78,7 +78,7 @@
   
   <option
         ID="Option_UD_Ductape_Mod_ScalingDamageChance"
-		    Requires="Option_UD_Ductape_Mod_AnyNumberOfMods"
+		    Requires="Option_UD_Ductape_Mod_AnyNumberOfMods==Yes"
         DisplayText="Enable scaling the chance &quot;held together by utilittape&quot; will damage an item according to how many mods are applied."
         Category="Mod: UD Ductape Mod"
         Type="Checkbox"
