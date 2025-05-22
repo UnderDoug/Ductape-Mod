@@ -279,7 +279,7 @@ namespace XRL.World.Parts
             {
                 bool isEquipped = Equipper != null;
                 string equipped = isEquipped ? "equipped " : "";
-                string message = $"=object.T= {equipped}=subject.Name= took {JostledDamage} from being knocked around!";
+                string message = $"=object.Possessive= {equipped}=subject.Name= took {JostledDamage} from being knocked around!";
 
                 if (Hitpoints.Value <= (int)Math.Ceiling(Hitpoints.BaseValue * 0.25) && Hitpoints.Value > 0)
                 {
@@ -383,7 +383,7 @@ namespace XRL.World.Parts
             {
                 StringBuilder SB = Event.NewStringBuilder();
 
-                string equipmentFrame = ParentObject.GetStringProperty("EquipmentFrameColors");
+                string equipmentFrame = ParentObject.GetPropertyOrTag("EquipmentFrameColors");
 
                 if (equipmentFrame.IsNullOrEmpty())
                 {
