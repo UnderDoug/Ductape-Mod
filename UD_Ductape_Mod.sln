@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.13.35919.96
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UD_Ductape Mod", "UD_Ductape Mod.csproj", "{570B03A4-55E1-D25B-F804-B67891BA252C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UD_Ductape_Mod", "UD_Ductape_Mod.csproj", "{570B03A4-55E1-D25B-F804-B67891BA252C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
