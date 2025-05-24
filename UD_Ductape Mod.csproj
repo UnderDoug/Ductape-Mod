@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <AssemblyName>UD_Blink_Mutation</AssemblyName>
-    <PackageId>UD_Blink_Mutation</PackageId>
+    <AssemblyName>UD_Ductape_Mod</AssemblyName>
+    <PackageId>UD_Ductape_Mod</PackageId>
     <Authors>UnderDoug</Authors>
     <DisableImplicitFrameworkReferences>true</DisableImplicitFrameworkReferences>
   </PropertyGroup>

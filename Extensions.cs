@@ -1948,9 +1948,9 @@ namespace UD_Ductape_Mod
             List<string> list = new();
             foreach (MutationEntry entry in Mutant.GetStartingMutationEntries())
             {
-                if (!list.Contains(entry.DisplayName))
+                if (!list.Contains(entry.Name))
                 {
-                    list.Add(entry.DisplayName);
+                    list.Add(entry.Name);
                 }
             }
             return list;

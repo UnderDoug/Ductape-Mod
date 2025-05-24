@@ -39,12 +39,6 @@ namespace UD_Ductape_Mod
             if (MethodName == nameof(ExplodingDie))
                 return false;
 
-            if (MethodName == nameof(SwapMutationEnrtyClass))
-                return false;
-
-            if (MethodName == nameof(SwapMutationCategory))
-                return false;
-
             if (MethodName == nameof(Rumble))
                 return false;
 
@@ -293,74 +287,6 @@ namespace UD_Ductape_Mod
             DieRoll dieRoll = new(DieRoll);
             return ExplodingDie(Number, dieRoll, Step, Limit, Indent);
         }
-
-        public static void SwapMutationEnrtyClass(MutationEntry Entry, string Class, int Indent = 0)
-        {
-            Debug.Entry(4, 
-                $"@ {nameof(Utils)}.{nameof(SwapMutationEnrtyClass)}(MutationEntry Entry, string Class, int Indent = 0)",
-                Indent: Indent, Toggle: getDoDebug(nameof(SwapMutationEnrtyClass)));
-            Debug.Entry(4,
-                $"Entry.DisplayName: {Entry.DisplayName ?? "[Nameless]"} | Entry.Class: {Entry.Class} | Destination Class: {Class}",
-                Indent: Indent, Toggle: getDoDebug(nameof(SwapMutationEnrtyClass)));
-
-            if (Entry.Class != Class)
-            {
-                Debug.Entry(4, $"Classes don't match, swapping", Indent: Indent + 1, Toggle: getDoDebug(nameof(SwapMutationEnrtyClass)));
-                Entry.Class = Class;
-            }
-            else
-            {
-                Debug.Entry(4, $"Classes already match, no action necessary", Indent: Indent + 1, Toggle: getDoDebug(nameof(SwapMutationEnrtyClass)));
-            }
-                
-            Debug.Entry(4,
-                $"x {nameof(Utils)}.{nameof(SwapMutationEnrtyClass)}(MutationEntry Entry, string Class, int Indent = 0) @//",
-                Indent: Indent, Toggle: getDoDebug(nameof(SwapMutationEnrtyClass)));
-        }
-
-        public static void SwapMutationCategory(string MutationName, string OutOfCategory, string IntoCategory)
-        {
-            Debug.Header(3, 
-                $"{MutationName}", 
-                $"SwapMutationCategory(MutationName, OutOfCategory: \"{OutOfCategory}\", IntoCategory: \"{IntoCategory}\")", 
-                Toggle: getDoDebug(nameof(SwapMutationCategory)));
-
-            MutationEntry MutationEntry = MutationFactory.GetMutationEntryByName(MutationName);
-
-            Debug.Entry(4, "> foreach (MutationCategory category in MutationFactory.GetCategories())", Indent: 1, Toggle: getDoDebug(nameof(SwapMutationCategory)));
-            foreach (MutationCategory category in MutationFactory.GetCategories())
-            {
-                Debug.LoopItem(4, category.Name, Indent: 2);
-                if (category.Name == IntoCategory)
-                {
-                    Debug.DiveIn(4, $"Found Category: \"{IntoCategory}\"", Indent: 2, Toggle: getDoDebug(nameof(SwapMutationCategory)));
-
-                    Debug.Entry(3, $"Adding \"{MutationEntry.DisplayName}\" Mutation to \"{IntoCategory}\" Category", Indent: 3, Toggle: getDoDebug(nameof(SwapMutationCategory)));
-                    category.Add(MutationEntry);
-                    category.Entries.Sort((x, y) => x.DisplayName.CompareTo(y.DisplayName));
-
-                    Debug.Entry(4, $"Displaying all entries in \"{IntoCategory}\" Category", Indent: 3, Toggle: getDoDebug(nameof(SwapMutationCategory)));
-                    Debug.Entry(4, "> foreach (MutationCategory category in MutationFactory.GetCategories())", Indent: 3, Toggle: getDoDebug(nameof(SwapMutationCategory)));
-                    foreach (MutationEntry entry in category.Entries)
-                    {
-                        Debug.LoopItem(4, entry.DisplayName, Indent: 4, Toggle: getDoDebug(nameof(SwapMutationCategory)));
-                    }
-                    Debug.DiveOut(3, $"x {IntoCategory} //", Indent: 2, Toggle: getDoDebug(nameof(SwapMutationCategory)));
-                }
-                if (category.Name == OutOfCategory)
-                {
-                    Debug.DiveIn(3, $"Found Category: \"{OutOfCategory}\"", Indent: 2, Toggle: getDoDebug(nameof(SwapMutationCategory)));
-                    Debug.Entry(3, $"Removing \"{MutationEntry.DisplayName}\" from \"{OutOfCategory}\" Category", Indent: 3, Toggle: getDoDebug(nameof(SwapMutationCategory)));
-                    category.Entries.RemoveAll(r => r == MutationEntry);
-                    Debug.DiveOut(3, $"x {OutOfCategory} //", Indent: 2, Toggle: getDoDebug(nameof(SwapMutationCategory)));
-                }
-            }
-            Debug.Entry(4, "x foreach (MutationCategory category in MutationFactory.GetCategories()) >//", Indent: 1, Toggle: getDoDebug(nameof(SwapMutationCategory)));
-            Debug.Footer(3, 
-                $"{MutationName}", 
-                $"SwapMutationCategory(MutationName, OutOfCategory: \"{OutOfCategory}\", IntoCategory: \"{IntoCategory}\")", 
-                Toggle: getDoDebug(nameof(SwapMutationCategory)));
-        } //!-- private void SwapMutationCategory(bool Before = true)
 
         public static GameObjectBlueprint GetGameObjectBlueprint(string Blueprint)
         {
