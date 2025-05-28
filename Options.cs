@@ -26,7 +26,6 @@ namespace UD_Ductape_Mod
             { nameof(ScalingDamageChance), Label("ScalingDamageChance") },
         };
 
-        // Per the wiki, code is taken 1:1
         private static string GetStringOption(string ID, string Default = "")
         {
             if (Directory.ContainsKey(ID))
@@ -59,19 +58,6 @@ namespace UD_Ductape_Mod
             SetStringOption(Directory[ID], $"{Value}");
         }
 
-        // Checkbox settings
-
-        public static bool ObnoxiousYelling
-        {
-            get
-            {
-                return GetBoolOption(nameof(ObnoxiousYelling), true);
-            }
-            set
-            {
-                SetBoolOption(nameof(ObnoxiousYelling), value);
-            }
-        }
 
         // Debug Settings
         public static int DebugVerbosity
@@ -109,6 +95,8 @@ namespace UD_Ductape_Mod
                 SetBoolOption(nameof(DebugDuctapeModDescriptions), value);
             }
         }
+
+        // Balance Settings
 
         public static bool AnyNumberOfMods
         {
