@@ -29,7 +29,9 @@ namespace XRL.World.Parts
 
         public static readonly string DeathReason = "jostled apart";
 
-        public int DamageOneIn = 100;
+        public int DamageOneIn = 75;
+
+        public int PassiveFactor = 5;
 
         public bool Jostled = false;
 
@@ -60,18 +62,6 @@ namespace XRL.World.Parts
         private GameObject Equipper => ParentObject?.Equipped;
 
         private GameObject Holder => ParentObject?.Holder;
-
-        private List<string> StringyJostleEventIDs => new()
-        {
-            "CommandFireMissile",
-            "BeforeThrown",
-        };
-        private Dictionary<Func<bool>, int> EquipperJostleEventIDs => new()
-        {
-            { delegate(){ return isArmor && isProperlyEquipped; }, EnteredCellEvent.ID },
-            { delegate(){ return isArmor && isProperlyEquipped; }, GetDefenderHitDiceEvent.ID },
-        };
-
 
         public Mod_UD_Ductape()
             : base()
@@ -160,9 +150,9 @@ namespace XRL.World.Parts
             base.Attach();
         }
 
-        public static int GetDamageOneIn(GameObject Object, int DamageOneIn, bool IsPassive)
+        public static int GetDamageOneIn(GameObject Object, int DamageOneIn, int PassiveFactor, bool IsPassive)
         {
-            int output = DamageOneIn * (IsPassive ? 10 : 1);
+            int output = DamageOneIn * (IsPassive ? PassiveFactor : 1);
             if (ScalingDamageChance)
             {
                 int modCount = Object.GetModificationSlotsUsed();
@@ -181,10 +171,10 @@ namespace XRL.World.Parts
         }
         public int GetDamageOneIn(bool IsPassive)
         {
-            return GetDamageOneIn(ParentObject, DamageOneIn, IsPassive);
+            return GetDamageOneIn(ParentObject, DamageOneIn, PassiveFactor, IsPassive);
         }
 
-        public static bool Jostle(GameObject Object, int DamageOneIn, out int JostledDamage, bool IsPassive = false, MinEvent FromEvent = null, Event FromSEvent = null)
+        public static bool Jostle(GameObject Object, int DamageOneIn, int PassiveFactor, out int JostledDamage, bool IsPassive = false, MinEvent FromEvent = null, Event FromSEvent = null)
         {
             int indent = Debug.LastIndent + 1;
             Debug.Entry(4, 
@@ -196,7 +186,7 @@ namespace XRL.World.Parts
             JostledDamage = 0;
             if (Object != null)
             {
-                int damageOneIn = GetDamageOneIn(Object, DamageOneIn, IsPassive);
+                int damageOneIn = GetDamageOneIn(Object, DamageOneIn, PassiveFactor, IsPassive);
                 int damageOneInPadding = damageOneIn.ToString().Length;
                 int roll = Stat.Roll(1, damageOneIn * 7) % DamageOneIn;
                 string rollString = roll.ToString().PadLeft(damageOneInPadding, ' ');
@@ -243,22 +233,22 @@ namespace XRL.World.Parts
         }
         public bool Jostle(out int JostledDamage, bool IsPassive = false, MinEvent FromEvent = null, Event FromSEvent = null)
         {
-            return Jostle(ParentObject, DamageOneIn, out JostledDamage, IsPassive, FromEvent, FromSEvent);
+            return Jostle(ParentObject, DamageOneIn, PassiveFactor, out JostledDamage, IsPassive, FromEvent, FromSEvent);
         }
-        public static bool TryJostle(GameObject Object, int DamageOneIn, out bool Jostled, out int JostledDamage, bool CanJostle = true, bool IsPassive = false, MinEvent FromEvent = null, Event FromSEvent = null)
+        public static bool TryJostle(GameObject Object, int DamageOneIn, int PassiveFactor, out bool Jostled, out int JostledDamage, bool CanJostle = true, bool IsPassive = false, MinEvent FromEvent = null, Event FromSEvent = null)
         {
             Jostled = false;
             JostledDamage = 0;
             if (Object != null && CanJostle)
             {
                 Jostled = true;
-                return Jostle(Object, DamageOneIn, out JostledDamage, IsPassive, FromEvent, FromSEvent);
+                return Jostle(Object, DamageOneIn, PassiveFactor, out JostledDamage, IsPassive, FromEvent, FromSEvent);
             }
             return false;
         }
         public bool TryJostle(out bool Jostled, out int JostledDamage, bool IsPassive = false, MinEvent FromEvent = null, Event FromSEvent = null)
         {
-            if (TryJostle(ParentObject, DamageOneIn, out Jostled, out JostledDamage, !this.Jostled, IsPassive, FromEvent, FromSEvent))
+            if (TryJostle(ParentObject, DamageOneIn, PassiveFactor, out Jostled, out JostledDamage, !this.Jostled, IsPassive, FromEvent, FromSEvent))
             {
                 LastJostledDamage = JostledDamage;
                 GotJostled(JostledDamage, FromEvent, FromSEvent);
@@ -318,6 +308,16 @@ namespace XRL.World.Parts
             }
             base.TurnTick(TimeTick, Amount);
         }
+        private List<string> StringyJostleEventIDs => new()
+        {
+            "CommandFireMissile",
+            "BeforeThrown",
+        };
+        private Dictionary<Func<bool>, int> EquipperJostleEventIDs => new()
+        {
+            { delegate(){ return isArmor && isProperlyEquipped; }, EnteredCellEvent.ID },
+            { delegate(){ return isArmor && isProperlyEquipped; }, GetDefenderHitDiceEvent.ID },
+        };
         public override void Register(GameObject Object, IEventRegistrar Registrar)
         {
             Registrar.Register(BeforeDestroyObjectEvent.ID, EventOrder.EXTREMELY_EARLY);
