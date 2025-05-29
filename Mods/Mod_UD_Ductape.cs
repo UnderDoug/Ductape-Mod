@@ -269,7 +269,7 @@ namespace XRL.World.Parts
             {
                 bool isEquipped = Equipper != null;
                 string equipped = isEquipped ? "equipped " : "";
-                string message = $"=object.Possessive= {equipped}=subject.Name= took {JostledDamage} from being knocked around!";
+                string message = $"=object.Possessive= {equipped}=subject.name= took {JostledDamage} from being knocked around!";
 
                 if (Hitpoints.Value <= (int)Math.Ceiling(Hitpoints.BaseValue * 0.25) && Hitpoints.Value > 0)
                 {
@@ -420,19 +420,20 @@ namespace XRL.World.Parts
 
                 SB.AppendColored("M", $"Utilitape").Append(": ");
                 SB.AppendLine();
-                SB.AppendColored("W", $"Options").AppendLine();
+
+                SB.AppendColored("W", $"Options")
+                    .AppendLine();
                 SB.Append(VANDR).Append($"[{AnyNumberOfMods.YehNah()}]{HONLY}{nameof(AnyNumberOfMods)}: ")
                     .AppendColored("B", $"{AnyNumberOfMods}");
                 SB.AppendLine();
                 SB.Append(TANDR).Append($"[{ScalingDamageChance.YehNah()}]{HONLY}{nameof(ScalingDamageChance)}: ")
                     .AppendColored("B", $"{ScalingDamageChance}");
                 SB.AppendLine();
-                SB.AppendColored("W", $"State").AppendLine();
+
+                SB.AppendColored("W", $"State")
+                    .AppendLine();
                 SB.Append(VANDR).Append($"[{Jostled.YehNah(true)}]{HONLY}{nameof(Jostled)}: ")
                     .AppendColored("B", $"{Jostled}");
-                SB.AppendLine();
-                SB.Append(VANDR).Append("(").AppendColored("C", $"{StoredTimeTick}-{The.Game.TimeTicks}|{The.Game.TimeTicks-StoredTimeTick}")
-                    .Append($"){HONLY}Current{nameof(The.Game.TimeTicks)}-{nameof(StoredTimeTick)}|Difference");
                 SB.AppendLine();
                 SB.Append(VANDR).Append("(").AppendColored("g", $"{GetDamageOneIn(!hasEquipper)}")
                     .Append($"){HONLY}{nameof(DamageOneIn)}");
@@ -449,7 +450,21 @@ namespace XRL.World.Parts
                 SB.Append(TANDR).Append("(").AppendColored("y", $"{equipmentFrame}")
                     .Append($"){HONLY}EquipmentFrameColors");
                 SB.AppendLine();
-                SB.AppendColored("W", $"Bools").AppendLine();
+
+                SB.AppendColored("W", $"TimeTick")
+                    .AppendLine();
+                SB.Append(VANDR).Append("(").AppendColored("y", $"{The.Game.TimeTicks}")
+                    .Append($"){HONLY}Current{nameof(The.Game.TimeTicks)}");
+                SB.AppendLine();
+                SB.Append(VANDR).Append("(").AppendColored("y", $"{StoredTimeTick}")
+                    .Append($"){HONLY}{nameof(StoredTimeTick)}");
+                SB.AppendLine();
+                SB.Append(TANDR).Append("(").AppendColored("y", $"{The.Game.TimeTicks - StoredTimeTick}")
+                    .Append($"){HONLY}Difference");
+                SB.AppendLine();
+
+                SB.AppendColored("W", $"Bools")
+                    .AppendLine();
                 SB.Append(VANDR).Append($"[{isMeleeWeapon.YehNah()}]{HONLY}{nameof(isMeleeWeapon)}: ")
                     .AppendColored("B", $"{isMeleeWeapon}");
                 SB.AppendLine();

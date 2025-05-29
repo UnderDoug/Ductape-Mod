@@ -36,7 +36,7 @@ namespace XRL.World.Parts
                     E.Actor.Fail(ParentObject.Does("do", int.MaxValue, null, null, null, AsIfKnown: false, Single: false, NoConfusion: false, NoColor: false, Stripped: false, WithoutTitles: true, Short: true, BaseOnly: false, WithIndefiniteArticle: false, null, IndicateHidden: false, Pronoun: true, SecondPerson: true, null) + " nothing.");
                     return false;
                 }
-                List<GameObject> objects = E.Actor.Inventory.GetObjects((GameObject o) => CanTape(o, E.Actor));
+                List<GameObject> objects = E.Actor.GetInventoryAndEquipment((GameObject o) => CanTape(o, E.Actor));
                 if (objects.Count == 0)
                 {
                     E.Actor.Fail("You have no items that need utilitape.");
@@ -64,7 +64,7 @@ namespace XRL.World.Parts
                 if (E.Actor.IsPlayer())
                 {
                     Popup.Show(message);
-                    Popup.Show(GameText.VariableReplace($"=object.T used the entire roll of =subject.name=!", ParentObject, The.Player));
+                    Popup.Show(GameText.VariableReplace($"=object.T= used the entire roll of =subject.name=!", ParentObject, The.Player));
                 }
                 if (flag && !gameObject.Understood())
                 {
