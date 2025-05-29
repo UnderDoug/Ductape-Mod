@@ -269,7 +269,7 @@ namespace XRL.World.Parts
             {
                 bool isEquipped = Equipper != null;
                 string equipped = isEquipped ? "equipped " : "";
-                string message = $"=object.Possessive= {equipped}=subject.name= took {JostledDamage} from being knocked around!";
+                string message = $"=object.T's= {equipped}{ParentObject.Render.DisplayName} took {JostledDamage} from being knocked around!";
 
                 if (Hitpoints.Value <= (int)Math.Ceiling(Hitpoints.BaseValue * 0.25) && Hitpoints.Value > 0)
                 {
