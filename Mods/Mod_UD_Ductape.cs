@@ -326,6 +326,7 @@ namespace XRL.World.Parts
             {
                 Registrar.Register(eventID);
             }
+            Registrar.Register(GetDisplayNameEvent.ID, EventOrder.EXTREMELY_LATE + EventOrder.EXTREMELY_LATE);
             base.Register(Object, Registrar);
         }
         public override bool WantEvent(int ID, int cascade)
@@ -357,7 +358,6 @@ namespace XRL.World.Parts
              && isThrownWeapon;
 
             return base.WantEvent(ID, cascade)
-                || ID == GetDisplayNameEvent.ID
                 || ID == GetShortDescriptionEvent.ID
                 || ID == EquippedEvent.ID
                 || ID == UnequippedEvent.ID
@@ -371,7 +371,18 @@ namespace XRL.World.Parts
         {
             if (E.Understood() && !E.Object.HasProperName)
             {
-                E.AddClause("{{y|held together by utilitape}}", PRIORITY_ADJUST_VERY_LARGE);
+                bool hasWiths = !E.DB.WithClauses.IsNullOrEmpty() && E.DB.WithClauses.Count > 0;
+
+                string clause = "{{y|held together by utilitape}}";
+
+                if (hasWiths)
+                {
+                    E.AddWithClause(clause);
+                }
+                else
+                {
+                    E.AddClause(clause, -4);
+                }
             }
             return base.HandleEvent(E);
         }
