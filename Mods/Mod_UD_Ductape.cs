@@ -51,6 +51,8 @@ namespace XRL.World.Parts
 
         private bool isPowerDrawing => ParentObject != null && ParentObject.UsesCharge();
 
+        private bool isPowering => ParentObject != null && ParentObject.HasPartDescendedFrom<IEnergyCell>();
+
         private bool isProperlyEquipped => ParentObject != null && ParentObject.IsEquippedProperly();
 
         private bool isWorn => ParentObject != null && ParentObject.IsWorn();
@@ -188,7 +190,7 @@ namespace XRL.World.Parts
                 int damageOneInPadding = damageOneIn.ToString().Length;
                 int roll = Stat.Roll($"1d{damageOneIn}");
                 string rollString = roll.ToString().PadLeft(damageOneInPadding, ' ');
-                bool byChance = roll == DamageOneIn;
+                bool byChance = roll == damageOneIn;
                 if (byChance)
                 {
                     int damageAmount = JostledDamage = (int)Math.Ceiling(Object.GetStat("Hitpoints").BaseValue * 0.25);
@@ -319,7 +321,8 @@ namespace XRL.World.Parts
         public override void Register(GameObject Object, IEventRegistrar Registrar)
         {
             Registrar.Register(BeforeDestroyObjectEvent.ID, EventOrder.EXTREMELY_EARLY);
-            Registrar.Register(UseChargeEvent.ID, EventOrder.EXTREMELY_EARLY);
+            Registrar.Register(ChargeUsedEvent.ID, EventOrder.EXTREMELY_EARLY);
+            Registrar.Register(UseChargeEvent.ID, EventOrder.EXTREMELY_LATE);
             foreach (string eventID in StringyJostleEventIDs)
             {
                 Registrar.Register(eventID);
@@ -375,7 +378,18 @@ namespace XRL.World.Parts
 
                 if (hasWiths)
                 {
-                    E.AddWithClause(clause);
+                    List<string> withClauses = new(E.DB.WithClauses)
+                    {
+                        clause
+                    };
+                    E.DB.WithClauses.Clear();
+                    if (!withClauses.IsNullOrEmpty())
+                    {
+                        foreach (string entry in withClauses)
+                        {
+                            E.AddWithClause(entry);
+                        }
+                    }
                 }
                 else
                 {
@@ -492,6 +506,9 @@ namespace XRL.World.Parts
                 SB.Append(VANDR).Append($"[{isPowerDrawing.YehNah()}]{HONLY}{nameof(isPowerDrawing)}: ")
                     .AppendColored("B", $"{isPowerDrawing}");
                 SB.AppendLine();
+                SB.Append(VANDR).Append($"[{isPowering.YehNah()}]{HONLY}{nameof(isPowering)}: ")
+                    .AppendColored("B", $"{isPowering}");
+                SB.AppendLine();
                 SB.Append(TANDR).Append($"[{isProperlyEquipped.YehNah()}]{HONLY}{nameof(isProperlyEquipped)}: ")
                     .AppendColored("B", $"{isProperlyEquipped}");
 
@@ -536,11 +553,29 @@ namespace XRL.World.Parts
             {
                 Debug.Entry(4,
                 $"{nameof(Mod_UD_Ductape)}." +
-                $"{nameof(HandleEvent)}(6" +
+                $"{nameof(HandleEvent)}(" +
                 $"{nameof(ChargeUsedEvent)} E)",
                 Indent: 0, Toggle: true);
 
                 TryJostle(out Jostled, !hasEquipper, FromEvent: E);
+            }
+            return base.HandleEvent(E);
+        }
+        public override bool HandleEvent(UseChargeEvent E)
+        {
+            bool wantUseCharge =
+                !Jostled
+             && isPowering;
+
+            if (wantUseCharge)
+            {
+                Debug.Entry(4,
+                $"{nameof(Mod_UD_Ductape)}." +
+                $"{nameof(HandleEvent)}(" +
+                $"{nameof(UseChargeEvent)} E)",
+                Indent: 0, Toggle: true);
+
+                TryJostle(out Jostled, true, FromEvent: E);
             }
             return base.HandleEvent(E);
         }
