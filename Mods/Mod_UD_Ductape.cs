@@ -1,6 +1,4 @@
-﻿using HarmonyLib;
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -188,9 +186,9 @@ namespace XRL.World.Parts
             {
                 int damageOneIn = GetDamageOneIn(Object, DamageOneIn, PassiveFactor, IsPassive);
                 int damageOneInPadding = damageOneIn.ToString().Length;
-                int roll = Stat.Roll(1, damageOneIn * 7) % DamageOneIn;
+                int roll = Stat.Roll($"1d{damageOneIn}");
                 string rollString = roll.ToString().PadLeft(damageOneInPadding, ' ');
-                bool byChance = roll == 1;
+                bool byChance = roll == DamageOneIn;
                 if (byChance)
                 {
                     int damageAmount = JostledDamage = (int)Math.Ceiling(Object.GetStat("Hitpoints").BaseValue * 0.25);
@@ -269,7 +267,7 @@ namespace XRL.World.Parts
             {
                 bool isEquipped = Equipper != null;
                 string equipped = isEquipped ? "equipped " : "";
-                string message = $"=object.T's= {equipped}{ParentObject.Render.DisplayName} took {JostledDamage} from being knocked around!";
+                string message = $"=object.T's= {equipped}{ParentObject?.BaseDisplayName} took {JostledDamage} from being knocked around!";
 
                 if (Hitpoints.Value <= (int)Math.Ceiling(Hitpoints.BaseValue * 0.25) && Hitpoints.Value > 0)
                 {
@@ -326,7 +324,7 @@ namespace XRL.World.Parts
             {
                 Registrar.Register(eventID);
             }
-            Registrar.Register(GetDisplayNameEvent.ID, EventOrder.EXTREMELY_LATE + EventOrder.EXTREMELY_LATE);
+            Registrar.Register(GetDisplayNameEvent.ID, EventOrder.EXTREMELY_LATE);
             base.Register(Object, Registrar);
         }
         public override bool WantEvent(int ID, int cascade)
