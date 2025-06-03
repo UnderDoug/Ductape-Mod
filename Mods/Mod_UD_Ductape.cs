@@ -8,6 +8,7 @@ using XRL.Language;
 using XRL.World;
 using XRL.World.Capabilities;
 using XRL.World.Tinkering;
+using XRL.Wish;
 
 using UD_Ductape_Mod;
 using static UD_Ductape_Mod.Const;
@@ -17,6 +18,7 @@ using Options = UD_Ductape_Mod.Options;
 
 namespace XRL.World.Parts
 {
+    [HasWishCommand]
     [Serializable]
     public class Mod_UD_Ductape : IModification
     {
@@ -202,7 +204,7 @@ namespace XRL.World.Parts
                 Indent: indent, Toggle: doDebug);
 
             JostledDamage = 0;
-            if (Item != null)
+            if (UD_JostleObjectEvent.CheckFor(Item, Activity))
             {
                 int activity = AdjustActivty(Item, Activity);
                 int activityOneInPadding = 10000.ToString().Length;
@@ -210,6 +212,7 @@ namespace XRL.World.Parts
                 if (activity.in10000())
                 {
                     JostledDamage = (int)Math.Ceiling(Item.GetStat("Hitpoints").BaseValue * 0.25);
+                    
                     Debug.Entry(4,
                         $"({activityString} in {10000})" +
                         $" {Item?.DebugName ?? NULL} took" +
@@ -223,16 +226,11 @@ namespace XRL.World.Parts
                         Attributes: "Disintigrate,Jostle",
                         DeathReason: DeathReason,
                         ThirdPersonDeathReason: DeathReason,
-                        Owner: null,
-                        Environmental: false,
                         Attacker: Item?.equippedOrSelf(),
                         Source: Item?.equippedOrSelf(),
                         Perspective: Item?.equippedOrSelf(),
-                        DescribeAsFrom: null,
                         Accidental: true,
                         Indirect: true,
-                        ShowUninvolved: false,
-                        IgnoreVisibility: false,
                         ShowForInanimate: true,
                         SilentIfNoDamage: true);
                 }
@@ -271,7 +269,7 @@ namespace XRL.World.Parts
             {
                 bool isEquipped = Equipper != null;
                 string equipped = isEquipped ? "equipped " : "";
-                string message = $"=object.T's= {equipped}{ParentObject?.BaseDisplayName} took {JostledDamage} from being knocked around!";
+                string message = $"=object.T's= {equipped}{ParentObject.BaseDisplayName} took {JostledDamage} from being knocked around!";
 
                 if (Hitpoints.Value <= (int)Math.Ceiling(Hitpoints.BaseValue * 0.25) && Hitpoints.Value > 0)
                 {
@@ -799,6 +797,110 @@ namespace XRL.World.Parts
         public override bool SameAs(IPart p)
         {
             return this == p;
+        }
+
+        [WishCommand(Command = "utilitape test kit")]
+        public static void UtilitapeTestKitWishHandler()
+        {
+            GameObject player = The.Player;
+            
+            for (int i = 0; i < 50; i++)
+            {
+                GameObject fixitSpray = GameObjectFactory.Factory.CreateObject("Fixit Spray", BonusModChance: -9999, Context: "Wish");
+                player.ReceiveObject(fixitSpray);
+
+                GameObject utilitape = GameObjectFactory.Factory.CreateObject("Utilitape", BonusModChance: -9999, Context: "Wish");
+                player.ReceiveObject(fixitSpray);
+
+                if (i < 10)
+                {
+                    GameObject antimatterCell = GameObjectFactory.Factory.CreateObject("Antimatter Cell", BonusModChance: -9999, Context: "Wish");
+                    antimatterCell.ApplyModification("ModRadioPowered", Actor: player);
+                    antimatterCell.ApplyModification("ModHighCapacity", Actor: player);
+                    if(!antimatterCell.ApplyModification("Mod_UD_RegenNanobots", Actor: player))
+                    {
+                        antimatterCell.ApplyModification("ModMetered", Actor: player);
+                    }
+                    antimatterCell.ApplyModification("ModGigantic", Actor: player);
+                    player.ReceiveObject(antimatterCell);
+                }
+            }
+            GameObject visage = GameObjectFactory.Factory.CreateObject("VISAGE", BonusModChance: -9999, Context: "Wish");
+            visage.ApplyModification("ModNav", Actor: player);
+            visage.ApplyModification("ModPolarized", Actor: player);
+            visage.ApplyModification("Mod_UD_RegenNanobots", Actor: player);
+            player.ReceiveObject(visage);
+
+            GameObject zetachromeDagger = GameObjectFactory.Factory.CreateObject("Dagger8", BonusModChance: -9999, Context: "Wish");
+            zetachromeDagger.ApplyModification("ModCounterweighted", Actor: player);
+            zetachromeDagger.ApplyModification("ModSharp", Actor: player);
+            zetachromeDagger.ApplyModification("Mod_UD_RegenNanobots", Actor: player);
+            zetachromeDagger.ApplyModification("Mod_UD_Ductape", Actor: player);
+            zetachromeDagger.ApplyModification("ModFlaming", Actor: player);
+            player.ReceiveObject(zetachromeDagger);
+
+            GameObject phaseCannon = GameObjectFactory.Factory.CreateObject("Phase Cannon", BonusModChance: -9999, Context: "Wish");
+            phaseCannon.ApplyModification("ModScoped", Actor: player);
+            phaseCannon.ApplyModification("ModNanon", Actor: player);
+            phaseCannon.ApplyModification("Mod_UD_RegenNanobots", Actor: player);
+            phaseCannon.ApplyModification("Mod_UD_Ductape", Actor: player);
+            phaseCannon.ApplyModification("ModWillowy", Actor: player);
+            player.ReceiveObject(phaseCannon);
+
+            GameObject antigravBoots = GameObjectFactory.Factory.CreateObject("Anti-Gravity Boots", BonusModChance: -9999, Context: "Wish");
+            antigravBoots.ApplyModification("ModSpringLoaded", Actor: player);
+            antigravBoots.ApplyModification("ModCleated", Actor: player);
+            antigravBoots.ApplyModification("Mod_UD_RegenNanobots", Actor: player);
+            antigravBoots.ApplyModification("Mod_UD_Ductape", Actor: player);
+            antigravBoots.ApplyModification("ModRefractive", Actor: player);
+            player.ReceiveObject(antigravBoots);
+
+            GameObject flawlessCrysteelShield = GameObjectFactory.Factory.CreateObject("Flawless Crysteel Shield", BonusModChance: -9999, Context: "Wish");
+            flawlessCrysteelShield.ApplyModification("ModSpiked", Actor: player);
+            flawlessCrysteelShield.ApplyModification("ModWillowy", Actor: player);
+            flawlessCrysteelShield.ApplyModification("Mod_UD_RegenNanobots", Actor: player);
+            flawlessCrysteelShield.ApplyModification("Mod_UD_Ductape", Actor: player);
+            flawlessCrysteelShield.ApplyModification("ModRefractive", Actor: player);
+            player.ReceiveObject(flawlessCrysteelShield);
+
+            GameObject transkineticCuffs = GameObjectFactory.Factory.CreateObject("Transkinetic Cuffs", BonusModChance: -9999, Context: "Wish");
+            transkineticCuffs.ApplyModification("ModSturdy", Actor: player);
+            transkineticCuffs.ApplyModification("ModOverloaded", Actor: player);
+            transkineticCuffs.ApplyModification("Mod_UD_RegenNanobots", Actor: player);
+            player.ReceiveObject(transkineticCuffs);
+
+            player.RequirePart<BitLocker>().AddAllBits(6000);
+
+            player.RequirePart<Mutations>().AddMutation("MultipleLegs", 10);
+
+            Popup.Suppress = true;
+            player.AwardXP(750000);
+            try
+            {
+                player.AddSkill("Tinkering");
+                player.AddSkill("Tinkering_GadgetInspector");
+                player.AddSkill("Tinkering_Repair");
+                player.AddSkill("Tinkering_ReverseEngineer");
+                player.AddSkill("Tinkering_Scavenger");
+                player.AddSkill("Tinkering_Disassemble");
+                player.AddSkill("Tinkering_LayMine");
+                player.AddSkill("Tinkering_DeployTurret");
+                player.AddSkill("Tinkering_Tinker1");
+                player.AddSkill("Tinkering_Tinker2");
+                player.AddSkill("Tinkering_Tinker3");
+                foreach (TinkerData tinkerRecipe in TinkerData.TinkerRecipes)
+                {
+                    if (!TinkerData.KnownRecipes.CleanContains(tinkerRecipe))
+                    {
+                        TinkerData.KnownRecipes.Add(tinkerRecipe);
+                    }
+                }
+                return;
+            }
+            finally
+            {
+                Popup.Suppress = false;
+            }
         }
     }
 }

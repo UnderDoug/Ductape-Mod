@@ -25,9 +25,8 @@ namespace XRL.World
         public new static readonly int CascadeLevel = CASCADE_ALL;
 
         public GameObject Item;
-        public int Amount;
+        public int Activity;
         public int OriginalAmount;
-        public MinEvent Source;
 
         public override int GetCascadeLevel()
         {
@@ -43,35 +42,36 @@ namespace XRL.World
         {
             base.Reset();
             Item = null;
-            Amount = 0;
-            Source = null;
+            Activity = 0;
         }
 
-        public static void Send(GameObject Item, int Amount, MinEvent Source = null)
+        public static bool CheckFor(GameObject Item, int Activity)
         {
             Debug.Entry(4,
-                $"{nameof(UD_JostleObjectEvent)}." +
-                $"{nameof(Send)}(int Amount: {Amount}, GameObject Actor: {Item?.DebugName ?? NULL})",
+                $"! {nameof(UD_JostleObjectEvent)}."
+                + $"{nameof(CheckFor)}"
+                + $"(Item: {Item?.DebugName ?? NULL},"
+                + $" Amount: {Activity})",
                 Indent: 0, Toggle: doDebug);
 
             UD_JostleObjectEvent E = FromPool();
 
-            bool flag = true;
-            if (flag && Item.WantEvent(ID, E.GetCascadeLevel()))
+            bool jostle = Item != null;
+
+            if (jostle && Item.WantEvent(ID, E.GetCascadeLevel()))
             {
                 E.Item = Item;
-                E.Amount = Amount;
-                E.OriginalAmount = Amount;
-                E.Source = Source;
-                flag = Item.HandleEvent(E);
+                E.Activity = Activity;
+                jostle = Item.HandleEvent(E);
             }
-            if (flag && Item.HasRegisteredEvent(E.GetRegisteredEventID()))
+            if (jostle && Item.HasRegisteredEvent(E.GetRegisteredEventID()))
             {
                 Event @event = Event.New(E.GetRegisteredEventID());
-                @event.SetParameter(nameof(Item), Item);
-                @event.SetParameter(nameof(Amount), Amount);
+                @event.SetParameter(nameof(Item), E.Item);
+                @event.SetParameter(nameof(Activity), E.Activity);
                 Item.FireEvent(@event);
             }
+            return jostle;
         }
     }
 }
