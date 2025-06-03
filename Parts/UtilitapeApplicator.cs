@@ -52,7 +52,7 @@ namespace XRL.World.Parts
                 {
                     ParentObject.MakeUnderstood();
                 }
-                string message = gameObject.Does("become", int.MaxValue, null, null, null, AsIfKnown: false, Single: false, NoConfusion: false, NoColor: false, Stripped: false, WithoutTitles: true, Short: true, BaseOnly: false, WithIndefiniteArticle: false, null, IndicateHidden: false, Pronoun: false, SecondPerson: true, null) + " held together by utilitape!";
+                string message = gameObject.Does("become", int.MaxValue, null, null, null, AsIfKnown: false, Single: false, NoConfusion: false, NoColor: false, Stripped: false, WithoutTitles: true, Short: true, BaseOnly: false, WithIndefiniteArticle: false, null, IndicateHidden: false, Pronoun: false, SecondPerson: true, null) + " held together by {{Y-y-y-y-K distribution|utilitape}}";
                 bool flag = gameObject.Understood();
                 if (!ItemModding.ApplyModification(gameObject, nameof(Mod_UD_Ductape), DoRegistration: true, E.Actor))
                 {

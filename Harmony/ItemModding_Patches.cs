@@ -19,13 +19,13 @@ namespace UD_Ductape_Mod.Harmony
     {
         private static bool doDebug => false;
 
-        [HarmonyPostfix]
         [HarmonyPatch(
             declaringType: typeof(ItemModding),
             methodName: nameof(ItemModding.ModKey),
             argumentTypes: new Type[] { typeof(GameObject) },
             argumentVariations: new ArgumentType[] { ArgumentType.Normal }
             )]
+        [HarmonyPostfix]
         public static void ModKey_IgnoreMaxMods_Prefix(ref string __result, GameObject Object)
         {
             string propertyOrTag = Object.GetPropertyOrTag("Mods");
@@ -35,13 +35,11 @@ namespace UD_Ductape_Mod.Harmony
                 $"{nameof(ItemModding.ModKey)}(" +
                 $"Object: {Object?.ShortDisplayNameWithoutTitlesStripped ?? NULL}, " +
                 $"propertyOrTag: {propertyOrTag?.Quote()})",
-                Indent: Debug.LastIndent, Toggle: doDebug
-                );
+                Indent: Debug.LastIndent, Toggle: doDebug);
 
             if (!propertyOrTag.IsNullOrEmpty() && propertyOrTag != "None")
             {
                 __result = propertyOrTag;
-                return;
             }
         }
     }

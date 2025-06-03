@@ -21,13 +21,13 @@ namespace UD_Ductape_Mod.Harmony
     {
         private static bool doDebug => false;
 
-        [HarmonyPostfix]
         [HarmonyPatch(
             declaringType: typeof(CanBeModdedEvent),
             methodName: nameof(CanBeModdedEvent.Check),
             argumentTypes: new Type[] { typeof(GameObject), typeof(GameObject), typeof(string) },
             argumentVariations: new ArgumentType[] { ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Normal }
             )]
+        [HarmonyPostfix]
         public static void ModificationApplicable_AllowFourth_Postfix(ref bool __result, GameObject Actor, GameObject Item, string ModName)
         {
             Debug.Entry(4,
@@ -36,8 +36,7 @@ namespace UD_Ductape_Mod.Harmony
                 $"Actor: {Actor?.ShortDisplayNameWithoutTitlesStripped ?? NULL}, " +
                 $"Item: {Item?.ShortDisplayNameWithoutTitlesStripped ?? NULL}, " +
                 $"ModName: {ModName ?? NULL})",
-                Indent: Debug.LastIndent, Toggle: doDebug
-                );
+                Indent: Debug.LastIndent, Toggle: doDebug);
 
             if (ModName != null)
             {

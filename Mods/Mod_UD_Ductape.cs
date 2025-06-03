@@ -28,30 +28,37 @@ namespace XRL.World.Parts
 
         public static int TurnsBetweenJostle = 1;
 
-        public const int ACTIVE_EXTREMELY = 750;
+        public const int ACTIVE_EXTREMELY = 625;
         public const int ACTIVE_VERY = 350;
         public const int ACTIVE = 175;
         public const int PASSIVE = 75;
         public const int PASSIVE_VERY = 25;
-        public const int PASSIVE_EXTREMELY = 10;
+        public const int PASSIVE_EXTREMELY = 5;
 
         public static readonly string DeathReason = "jostled apart";
 
         public static readonly string MOD_NAME = "held together by utilitape";
-        public static readonly string MOD_NAME_COLORED = "held together by {{Y-y-y-y-K distribution|utilitape}}";
+        public static readonly string MOD_NAME_COLORED = "held together by {{utilitape|utilitape}}";
 
         public int Activity = 0;
 
+        public List<string> ActivityAdded;
+
         public List<string> AllJostleSources = new();
+        private List<string> CurrentJostleSources = new();
+        private List<string> LastJostleSources = new();
 
         private double StoredTimeTick = 0;
 
         private int TotalActivity = 0;
         private int TimesActive = 0;
+        private int TimesJostled = 0;
+
+        private float AverageActivity => (float)TotalActivity / (float)TimesActive;
+        private float ActivityPerTurn => (float)TotalActivity / (float)TimesJostled;
+
         public int CumulativeJostledDamage = 0;
         public int LastJostledDamage = 0;
-        private List<string> CurrentJostleSources = new();
-        private List<string> LastJostleSources = new();
 
         private bool isMeleeWeapon => ParentObject != null && ParentObject.TryGetPart(out MeleeWeapon meleeWeapon) && !meleeWeapon.IsImprovised();
 
@@ -192,7 +199,7 @@ namespace XRL.World.Parts
                 $"* {nameof(Jostle)}(" 
                 + $"Item: {Item?.DebugName ?? NULL}, " 
                 + $"Activity: {Activity})",
-                Indent: indent + 1, Toggle: doDebug);
+                Indent: indent, Toggle: doDebug);
 
             JostledDamage = 0;
             if (Item != null)
@@ -207,12 +214,12 @@ namespace XRL.World.Parts
                         $"({activityString} in {10000})" +
                         $" {Item?.DebugName ?? NULL} took" +
                         $" {JostledDamage} damage from being knocked around!",
-                        Indent: indent + 2, Toggle: doDebug);
+                        Indent: indent + 1, Toggle: doDebug);
 
                     Debug.LastIndent = indent;
                     return Item.TakeDamage(
                         Amount: JostledDamage,
-                        Message: "from being {{y|jostled}}!",
+                        Message: "from being {{utilitape|jostled}}!",
                         Attributes: "Disintigrate,Jostle",
                         DeathReason: DeathReason,
                         ThirdPersonDeathReason: DeathReason,
@@ -235,7 +242,7 @@ namespace XRL.World.Parts
                         $"({activityString} in {10000})" +
                         $" {Item?.DebugName ?? NULL}" +
                         $" was Jostled! ", 
-                        Indent: indent + 2, Toggle: doDebug);
+                        Indent: indent + 1, Toggle: doDebug);
                 }
             }
             Debug.LastIndent = indent;
@@ -244,6 +251,7 @@ namespace XRL.World.Parts
         public bool Jostle(int Activity, out int JostledDamage)
         {
             bool jostled = Jostle(ParentObject, Activity, out JostledDamage);
+            TimesJostled++;
             if (jostled)
             {
                 CumulativeJostledDamage += JostledDamage;
@@ -280,7 +288,7 @@ namespace XRL.World.Parts
                 {
                     if (FromEvent is BeforeDestroyObjectEvent E && (E.Reason == DeathReason || E.ThirdPersonReason == DeathReason))
                     {
-                        message += $" =pronouns.Subjective==verb:'ve:afterpronoun= been jostled into useless pieces!";
+                        message += " =pronouns.Subjective==verb:'ve:afterpronoun= been {{utilitape|jostled}} into useless pieces!";
                     }
                 }
                 Popup.Show(GameText.VariableReplace(message, Subject: ParentObject, Object: Holder));
@@ -288,20 +296,54 @@ namespace XRL.World.Parts
             }
         }
 
+        public bool CanAddActivity(MinEvent FromEvent = null, Event FromSEvent = null)
+        {
+            ActivityAdded ??= new();
+            bool eventAdded = false;
+            bool sEventAdded = false;
+            string eventName;
+            if (FromEvent != null)
+            {
+                eventName = FromEvent.GetType().Name;
+                eventAdded = ActivityAdded.Contains(eventName);
+            }
+            if (FromSEvent != null)
+            {
+                eventName = FromSEvent.ID;
+                sEventAdded = ActivityAdded.Contains(eventName);
+            }
+            return !eventAdded && !sEventAdded;
+        }
+        public bool CanAddActivity(string FromEvent = null)
+        {
+            ActivityAdded ??= new();
+            return FromEvent.IsNullOrEmpty() || !ActivityAdded.Contains(FromEvent);
+        }
+        public bool CanAddActivity(Type FromEvent = null)
+        {
+            return CanAddActivity(FromEvent?.Name);
+        }
+
+
         public void AddActivity(int Amount, MinEvent FromEvent = null, Event FromSEvent = null)
         {
+            ActivityAdded ??= new();
             Activity += Amount;
             TotalActivity += Amount;
             TimesActive++;
             if (FromEvent != null)
             {
-                AllJostleSources.TryAdd(FromEvent.GetType().Name);
-                CurrentJostleSources.TryAdd(FromEvent.GetType().Name);
+                string @event = FromEvent.GetType().Name;
+                ActivityAdded.TryAdd(@event);
+                AllJostleSources.TryAdd(@event);
+                CurrentJostleSources.TryAdd(@event);
             }
             if (FromSEvent != null)
             {
-                AllJostleSources.TryAdd(FromSEvent.ID);
-                CurrentJostleSources.TryAdd(FromSEvent.ID);
+                string sEvent = FromSEvent.ID;
+                ActivityAdded.TryAdd(sEvent);
+                AllJostleSources.TryAdd(sEvent);
+                CurrentJostleSources.TryAdd(sEvent);
             }
         }
 
@@ -310,6 +352,7 @@ namespace XRL.World.Parts
             Activity = 0;
             LastJostleSources = new(CurrentJostleSources);
             CurrentJostleSources = new();
+            ActivityAdded = new();
             Activity = 0;
         }
 
@@ -319,7 +362,7 @@ namespace XRL.World.Parts
         }
         public override void TurnTick(long TimeTick, int Amount)
         {
-            if (TimeTick - StoredTimeTick > TurnsBetweenJostle || (Hitpoints.Value > 0 && !ParentObject.IsInGraveyard()))
+            if (Activity > 0 && TimeTick - StoredTimeTick > TurnsBetweenJostle && Hitpoints.Value > 0 && !ParentObject.IsInGraveyard())
             {
                 Jostle(Activity);
                 ResetActivity();
@@ -334,7 +377,7 @@ namespace XRL.World.Parts
         };
         private Dictionary<Func<bool>, int> EquipperJostleEventIDs => new()
         {
-            { delegate(){ return isArmor && isProperlyEquipped; }, EnteredCellEvent.ID },
+            { delegate(){ return isProperlyEquipped; }, EnteredCellEvent.ID },
             { delegate(){ return isArmor && isProperlyEquipped; }, GetDefenderHitDiceEvent.ID },
         };
         public override void Register(GameObject Object, IEventRegistrar Registrar)
@@ -388,9 +431,16 @@ namespace XRL.World.Parts
             {
                 bool hasWiths = !E.DB.WithClauses.IsNullOrEmpty() && E.DB.WithClauses.Count > 0;
 
-                string clause = (hasWiths ? ", and " : "") + MOD_NAME_COLORED;
+                if (hasWiths)
+                {
+                    E.AddWithClause(MOD_NAME_COLORED);
+                }
+                else
+                {
+                    E.AddClause(MOD_NAME_COLORED, DescriptionBuilder.ORDER_ADJUST_EXTREMELY_LATE);
+                }
 
-                E.AddTag(clause, DescriptionBuilder.ORDER_ADJUST_EXTREMELY_EARLY);
+                // E.AddTag(clause, DescriptionBuilder.ORDER_ADJUST_EXTREMELY_EARLY);
             }
             return base.HandleEvent(E);
         }
@@ -451,12 +501,13 @@ namespace XRL.World.Parts
                  && isEquipment
                  && isProperlyEquipped;
 
-                SB.AppendColored("M", $"Utilitape").Append(": ");
+                SB.AppendColored("M", MOD_NAME).Append(": ");
                 SB.AppendLine();
 
                 SB.AppendColored("W", $"Options")
                     .AppendLine();
-                SB.Append(VANDR).Append($"[{AnyNumberOfMods.YehNah()}]{HONLY}{nameof(AnyNumberOfMods)}: ")
+                SB.Append(VANDR).Append($"[").Append(AnyNumberOfMods.YehNah()).Append($"]")
+                    .Append(HONLY).Append($"{nameof(AnyNumberOfMods)}: ")
                     .AppendColored("B", $"{AnyNumberOfMods}");
                 SB.AppendLine();
                 SB.Append(TANDR).Append($"[{ScalingDamageChance.YehNah()}]{HONLY}{nameof(ScalingDamageChance)}: ")
@@ -469,7 +520,7 @@ namespace XRL.World.Parts
                     .Append($"){HONLY}{nameof(Activity)}");
                 SB.AppendLine();
                 SB.Append(VANDR).Append("(").AppendColored("G", $"{AdjustActivty(Activity)}")
-                    .Append($"){HONLY}{nameof(AdjustActivty)}");
+                    .Append($"){HONLY}{nameof(AdjustActivty)} ({ParentObject.GetModificationSlotsUsed()})");
                 SB.AppendLine();
                 SB.Append(VONLY).Append(VANDR).Append("(").AppendColored("R", $"{AdjustActivty(ACTIVE_EXTREMELY)}")
                     .Append($"){HONLY}{nameof(ACTIVE_EXTREMELY)}");
@@ -489,8 +540,23 @@ namespace XRL.World.Parts
                 SB.Append(VONLY).Append(TANDR).Append("(").AppendColored("G", $"{AdjustActivty(PASSIVE_EXTREMELY)}")
                     .Append($"){HONLY}{nameof(PASSIVE_EXTREMELY)}");
                 SB.AppendLine();
-                SB.Append(VANDR).Append($"[{isProperlyEquipped.YehNah(true)}]{HONLY}isPassive: ")
-                    .AppendColored("B", $"{!hasEquipper}");
+                SB.Append(VANDR).Append("(").AppendColored("M", $"{AverageActivity}")
+                    .Append($"){HONLY}{nameof(AverageActivity)}");
+                SB.AppendLine();
+                SB.Append(VANDR).Append("(").AppendColored("M", $"{ActivityPerTurn}")
+                    .Append($"){HONLY}{nameof(ActivityPerTurn)}");
+                SB.AppendLine();
+                SB.Append(VANDR).Append("(").AppendColored("M", $"{10000 / ActivityPerTurn}")
+                    .Append($"){HONLY}OneIn");
+                SB.AppendLine();
+                SB.Append(VONLY).Append(VANDR).Append("(").AppendColored("m", $"{TotalActivity}")
+                    .Append($"){HONLY}{nameof(TotalActivity)}");
+                SB.AppendLine();
+                SB.Append(VONLY).Append(VANDR).Append("(").AppendColored("m", $"{TimesActive}")
+                    .Append($"){HONLY}{nameof(TimesActive)}");
+                SB.AppendLine();
+                SB.Append(VONLY).Append(TANDR).Append("(").AppendColored("m", $"{TimesJostled}")
+                    .Append($"){HONLY}{nameof(TimesJostled)}");
                 SB.AppendLine();
                 SB.Append(VANDR).Append("(").AppendColored("c", $"{CumulativeJostledDamage}")
                     .Append($"){HONLY}{nameof(CumulativeJostledDamage)}");
@@ -525,28 +591,36 @@ namespace XRL.World.Parts
 
                 SB.AppendColored("W", $"Bools")
                     .AppendLine();
-                SB.Append(VANDR).Append($"[{isMeleeWeapon.YehNah()}]{HONLY}{nameof(isMeleeWeapon)}: ")
+                SB.Append(VANDR).Append($"[").Append(isMeleeWeapon.YehNah()).Append($"]").Append(HONLY)
+                    .Append($"{nameof(isMeleeWeapon)}: ")
                     .AppendColored("B", $"{isMeleeWeapon}");
                 SB.AppendLine();
-                SB.Append(VANDR).Append($"[{isMissileWeapon.YehNah()}]{HONLY}{nameof(isMissileWeapon)}: ")
+                SB.Append(VANDR).Append($"[").Append(isMissileWeapon.YehNah()).Append($"]").Append(HONLY)
+                    .Append($"{nameof(isMissileWeapon)}: ")
                     .AppendColored("B", $"{isMissileWeapon}");
                 SB.AppendLine();
-                SB.Append(VANDR).Append($"[{isThrownWeapon.YehNah()}]{HONLY}{nameof(isThrownWeapon)}: ")
+                SB.Append(VANDR).Append($"[").Append(isThrownWeapon.YehNah()).Append($"]").Append(HONLY)
+                    .Append($"{nameof(isThrownWeapon)}: ")
                     .AppendColored("B", $"{isThrownWeapon}");
                 SB.AppendLine();
-                SB.Append(VANDR).Append($"[{isShield.YehNah()}]{HONLY}{nameof(isShield)}: ")
+                SB.Append(VANDR).Append($"[").Append(isShield.YehNah()).Append($"]").Append(HONLY)
+                    .Append($"{nameof(isShield)}: ")
                     .AppendColored("B", $"{isShield}");
                 SB.AppendLine();
-                SB.Append(VANDR).Append($"[{isArmor.YehNah()}]{HONLY}{nameof(isArmor)}: ")
+                SB.Append(VANDR).Append($"[").Append(isArmor.YehNah()).Append($"]").Append(HONLY)
+                    .Append($"{nameof(isArmor)}: ")
                     .AppendColored("B", $"{isArmor}");
                 SB.AppendLine();
-                SB.Append(VANDR).Append($"[{isPowerDrawing.YehNah()}]{HONLY}{nameof(isPowerDrawing)}: ")
+                SB.Append(VANDR).Append($"[").Append(isPowerDrawing.YehNah()).Append($"]").Append(HONLY)
+                    .Append($"{nameof(isPowerDrawing)}: ")
                     .AppendColored("B", $"{isPowerDrawing}");
                 SB.AppendLine();
-                SB.Append(VANDR).Append($"[{isPowering.YehNah()}]{HONLY}{nameof(isPowering)}: ")
+                SB.Append(VANDR).Append($"[").Append(isPowering.YehNah()).Append($"]").Append(HONLY)
+                    .Append($"{nameof(isPowering)}: ")
                     .AppendColored("B", $"{isPowering}");
                 SB.AppendLine();
-                SB.Append(TANDR).Append($"[{isProperlyEquipped.YehNah()}]{HONLY}{nameof(isProperlyEquipped)}: ")
+                SB.Append(TANDR).Append($"[").Append(isProperlyEquipped.YehNah()).Append($"]").Append(HONLY)
+                    .Append($"{nameof(isProperlyEquipped)}: ")
                     .AppendColored("B", $"{isProperlyEquipped}");
 
                 E.Infix.AppendLine().AppendRules(Event.FinalizeString(SB));
@@ -582,27 +656,33 @@ namespace XRL.World.Parts
              && isEquipment
              && isProperlyEquipped;
 
-            if (isPowerDrawing) // Powered Objects
+            if (E.Source == ParentObject && isPowerDrawing && CanAddActivity(FromEvent: E)) // Powered Objects
             {
-                Debug.Entry(4,
-                $"{nameof(Mod_UD_Ductape)}." +
-                $"{nameof(HandleEvent)}(" +
-                $"{nameof(ChargeUsedEvent)} E)",
-                Indent: 0, Toggle: doDebug);
+                int activity = hasEquipper ? PASSIVE_VERY : PASSIVE_EXTREMELY;
 
-                AddActivity(hasEquipper ? PASSIVE_VERY : PASSIVE_EXTREMELY, FromEvent: E);
+                Debug.Entry(4,
+                    $"{nameof(Mod_UD_Ductape)}." +
+                    $"{nameof(HandleEvent)}(" +
+                    $"{nameof(ChargeUsedEvent)} E) " +
+                    $"{ParentObject?.BaseDisplayName} " +
+                    $"{activity}",
+                    Indent: 0, Toggle: doDebug);
+
+                AddActivity(activity, FromEvent: E);
             }
             return base.HandleEvent(E);
         }
         public override bool HandleEvent(UseChargeEvent E)
         {
-            if (isPowering) // Energy Cells
+            if (E.Source == ParentObject && isPowering && CanAddActivity(FromEvent: E)) // Energy Cells
             {
                 Debug.Entry(4,
-                $"{nameof(Mod_UD_Ductape)}." +
-                $"{nameof(HandleEvent)}(" +
-                $"{nameof(UseChargeEvent)} E)",
-                Indent: 0, Toggle: doDebug);
+                    $"{nameof(Mod_UD_Ductape)}." +
+                    $"{nameof(HandleEvent)}(" +
+                    $"{nameof(UseChargeEvent)} E) " +
+                    $"{ParentObject?.BaseDisplayName} " +
+                    $"{PASSIVE_VERY}",
+                    Indent: 0, Toggle: doDebug);
 
                 AddActivity(PASSIVE_VERY, FromEvent: E);
             }
@@ -610,78 +690,115 @@ namespace XRL.World.Parts
         }
         public override bool HandleEvent(GetWeaponHitDiceEvent E)
         {
-            Debug.Entry(4,
-                $"{nameof(Mod_UD_Ductape)}." +
-                $"{nameof(HandleEvent)}(" +
-                $"{nameof(GetWeaponHitDiceEvent)} E)",
-                Indent: 0, Toggle: doDebug);
+            if(E.Weapon == ParentObject && CanAddActivity(FromEvent: E))
+            {
+                Debug.Entry(4,
+                    $"{nameof(Mod_UD_Ductape)}." +
+                    $"{nameof(HandleEvent)}(" +
+                    $"{nameof(GetWeaponHitDiceEvent)} E) " +
+                    $"{ParentObject?.BaseDisplayName} " +
+                    $"{ACTIVE}",
+                    Indent: 0, Toggle: doDebug);
 
-            AddActivity(ACTIVE, FromEvent: E);
+                AddActivity(ACTIVE, FromEvent: E);
+            }
             return base.HandleEvent(E);
         }
         public override bool HandleEvent(BeforeFireMissileWeaponsEvent E)
         {
-            Debug.Entry(4,
-                $"{nameof(Mod_UD_Ductape)}." +
-                $"{nameof(HandleEvent)}(" +
-                $"{nameof(BeforeFireMissileWeaponsEvent)} E)",
-                Indent: 0, Toggle: doDebug);
+            if (isMissileWeapon && CanAddActivity(FromEvent: E))
+            {
+                Debug.Entry(4,
+                    $"{nameof(Mod_UD_Ductape)}." +
+                    $"{nameof(HandleEvent)}(" +
+                    $"{nameof(BeforeFireMissileWeaponsEvent)} E) " +
+                    $"{ParentObject?.BaseDisplayName} " +
+                    $"{ACTIVE_VERY}",
+                    Indent: 0, Toggle: doDebug);
 
-            AddActivity(ACTIVE_VERY, FromEvent: E);
+                AddActivity(ACTIVE_VERY, FromEvent: E);
+            }
             return base.HandleEvent(E);
         }
         public override bool HandleEvent(GetThrownWeaponFlexPhaseProviderEvent E)
         {
-            Debug.Entry(4,
-                $"{nameof(Mod_UD_Ductape)}." +
-                $"{nameof(HandleEvent)}(" +
-                $"{nameof(GetThrownWeaponFlexPhaseProviderEvent)} E)",
-                Indent: 0, Toggle: doDebug);
+            if (isThrownWeapon && CanAddActivity(FromEvent: E))
+            {
+                Debug.Entry(4,
+                    $"{nameof(Mod_UD_Ductape)}." +
+                    $"{nameof(HandleEvent)}(" +
+                    $"{nameof(GetThrownWeaponFlexPhaseProviderEvent)} E) " +
+                    $" {ParentObject?.BaseDisplayName}" +
+                    $"{ACTIVE_VERY}",
+                    Indent: 0, Toggle: doDebug);
 
-            AddActivity(ACTIVE_VERY, FromEvent: E);
+                AddActivity(ACTIVE_VERY, FromEvent: E);
+            }
             return base.HandleEvent(E);
         }
         public override bool HandleEvent(AfterShieldBlockEvent E)
         {
-            Debug.Entry(4,
-                $"{nameof(Mod_UD_Ductape)}." +
-                $"{nameof(HandleEvent)}(" +
-                $"{nameof(AfterShieldBlockEvent)} E)",
-                Indent: 0, Toggle: doDebug);
+            if (isShield && CanAddActivity(FromEvent: E))
+            {
+                Debug.Entry(4,
+                    $"{nameof(Mod_UD_Ductape)}." +
+                    $"{nameof(HandleEvent)}(" +
+                    $"{nameof(AfterShieldBlockEvent)} E) " +
+                    $"{ParentObject?.BaseDisplayName} " +
+                    $"{ACTIVE}",
+                    Indent: 0, Toggle: doDebug);
 
-            AddActivity(ACTIVE, FromEvent: E);
+                AddActivity(ACTIVE, FromEvent: E);
+            }
             return base.HandleEvent(E);
         }
         public override bool HandleEvent(EnteredCellEvent E)
         {
-            Debug.Entry(4,
-                $"{nameof(Mod_UD_Ductape)}." +
-                $"{nameof(HandleEvent)}(" +
-                $"{nameof(ObjectEnteredCellEvent)} E)",
-                Indent: 0, Toggle: doDebug);
+            if (E.Object == ParentObject && CanAddActivity(FromEvent: E))
+            {
+                int activity = isArmor ? PASSIVE : PASSIVE_VERY;
 
-            AddActivity(PASSIVE, FromEvent: E);
+                Debug.Entry(4,
+                    $"{nameof(Mod_UD_Ductape)}." +
+                    $"{nameof(HandleEvent)}(" +
+                    $"{nameof(ObjectEnteredCellEvent)} E) " +
+                    $"{ParentObject?.BaseDisplayName} " +
+                    $"{activity}",
+                    Indent: 0, Toggle: doDebug);
+
+                AddActivity(activity, FromEvent: E);
+            }
             return base.HandleEvent(E);
         }
         public override bool HandleEvent(GetDefenderHitDiceEvent E)
         {
-            Debug.Entry(4,
-                $"{nameof(Mod_UD_Ductape)}." +
-                $"{nameof(HandleEvent)}(" +
-                $"{nameof(GetDefenderHitDiceEvent)} E)",
-                Indent: 0, Toggle: doDebug);
+            if (E.Defender == Equipper && CanAddActivity(FromEvent: E))
+            {
+                Debug.Entry(4,
+                    $"{nameof(Mod_UD_Ductape)}." +
+                    $"{nameof(HandleEvent)}(" +
+                    $"{nameof(GetDefenderHitDiceEvent)} E) " +
+                    $"{ParentObject?.BaseDisplayName} " +
+                    $"{ACTIVE_VERY}",
+                    Indent: 0, Toggle: doDebug);
 
-            AddActivity(ACTIVE_VERY, FromEvent: E);
+                AddActivity(ACTIVE_VERY, FromEvent: E);
+            }
             return base.HandleEvent(E);
         }
         public override bool FireEvent(Event E)
         {
-            if (StringyJostleEventIDs.ContainsKey(E.ID))
+            if (StringyJostleEventIDs.ContainsKey(E.ID) && CanAddActivity(FromSEvent: E))
             {
                 int activity = StringyJostleEventIDs[E.ID];
                 AddActivity(activity, FromSEvent: E);
             }
             return base.FireEvent(E);
+        }
+        
+        public override bool SameAs(IPart p)
+        {
+            return this == p;
         }
     }
 }

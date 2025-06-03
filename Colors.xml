@@ -1,0 +1,6 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<colors>
+  <shaders>
+    <shader Name="utilitape" Type="distribution" Colors="Y-y-y-y-K" ShowInPicker="true" />
+  </shaders>
+</colors>
