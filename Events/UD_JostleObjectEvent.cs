@@ -69,7 +69,7 @@ namespace XRL.World
                 Event @event = Event.New(E.GetRegisteredEventID());
                 @event.SetParameter(nameof(Item), E.Item);
                 @event.SetParameter(nameof(Activity), E.Activity);
-                Item.FireEvent(@event);
+                jostle = Item.FireEvent(@event);
             }
             return jostle;
         }

@@ -275,7 +275,7 @@ namespace XRL.World.Parts
                 {
                     if (ParentObject.IsBroken())
                     {
-                        message += " =pronouns.Subjective='s {{r|busted}}!";
+                        message += $" {ParentObject.Itis} " + " {{r|busted}}!";
                     }
                     else
                     {
@@ -810,7 +810,7 @@ namespace XRL.World.Parts
                 player.ReceiveObject(fixitSpray);
 
                 GameObject utilitape = GameObjectFactory.Factory.CreateObject("Utilitape", BonusModChance: -9999, Context: "Wish");
-                player.ReceiveObject(fixitSpray);
+                player.ReceiveObject(utilitape);
 
                 if (i < 10)
                 {
