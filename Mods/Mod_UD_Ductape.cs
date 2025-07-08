@@ -16,11 +16,13 @@ using static UD_Ductape_Mod.Const;
 using Debug = UD_Ductape_Mod.Debug;
 using Options = UD_Ductape_Mod.Options;
 
+using SerializeField = UnityEngine.SerializeField;
+
 namespace XRL.World.Parts
 {
     [HasWishCommand]
     [Serializable]
-    public class Mod_UD_Ductape : IModification
+    public class Mod_UD_Ductape : IModification, IModEventHandler<UD_JostleObjectEvent>
     {
         private static bool doDebug = true;
 
@@ -29,6 +31,8 @@ namespace XRL.World.Parts
         private static bool ScalingDamageChance => Options.ScalingDamageChance;
 
         public static int TurnsBetweenJostle = 1;
+
+        public const int CHANCE_IN = 10000;
 
         public const int ACTIVE_EXTREMELY = 625;
         public const int ACTIVE_VERY = 350;
@@ -50,10 +54,14 @@ namespace XRL.World.Parts
         private List<string> CurrentJostleSources = new();
         private List<string> LastJostleSources = new();
 
+        [SerializeField]
         private double StoredTimeTick = 0;
 
+        [SerializeField]
         private int TotalActivity = 0;
+        [SerializeField]
         private int TimesActive = 0;
+        [SerializeField]
         private int TimesJostled = 0;
 
         private float AverageActivity => (float)TotalActivity / (float)TimesActive;
@@ -170,12 +178,9 @@ namespace XRL.World.Parts
             if (ScalingDamageChance)
             {
                 int modCount = Object.GetModificationSlotsUsed();
-                int multiplier = 1;
-                if (modCount > 0)
-                {
-                    multiplier += 4 - Math.Min(4, Object.GetModificationSlotsUsed());
-                }
-                output *= (int)(1.0f / multiplier);
+                float multiplier = 1;
+                multiplier += 3 - Math.Max(1, Math.Min(modCount, 3));
+                output = (int)(output * (1.0f / Math.Min(multiplier, 1)));
             }
             return output;
         }
@@ -197,14 +202,14 @@ namespace XRL.World.Parts
             if (UD_JostleObjectEvent.CheckFor(Item, Activity))
             {
                 int activity = AdjustActivty(Item, Activity);
-                int activityOneInPadding = 10000.ToString().Length;
+                int activityOneInPadding = CHANCE_IN.ToString().Length;
                 string activityString = activity.ToString().PadLeft(activityOneInPadding, ' ');
-                if (activity.in10000())
+                if (activity.ChanceIn(CHANCE_IN))
                 {
                     JostledDamage = (int)Math.Ceiling(Item.GetStat("Hitpoints").BaseValue * 0.25);
                     
                     Debug.Entry(4,
-                        $"({activityString} in {10000})" +
+                        $"({activityString} in {CHANCE_IN})" +
                         $" {Item?.DebugName ?? NULL} took" +
                         $" {JostledDamage} damage from being knocked around!",
                         Indent: indent + 1, Toggle: doDebug);
@@ -214,8 +219,8 @@ namespace XRL.World.Parts
                         Amount: JostledDamage,
                         Message: "from being {{utilitape|jostled}}!",
                         Attributes: "Disintigrate,Jostle",
-                        DeathReason: DeathReason,
-                        ThirdPersonDeathReason: DeathReason,
+                        DeathReason: $"You were {DeathReason}",
+                        ThirdPersonDeathReason: $"{Item.It + Item.GetVerb("were")} {DeathReason}",
                         Attacker: Item?.equippedOrSelf(),
                         Source: Item?.equippedOrSelf(),
                         Perspective: Item?.equippedOrSelf(),
@@ -274,7 +279,7 @@ namespace XRL.World.Parts
                 }
                 if (FromEvent != null)
                 {
-                    if (FromEvent is BeforeDestroyObjectEvent E && (E.Reason == DeathReason || E.ThirdPersonReason == DeathReason))
+                    if (FromEvent is BeforeDestroyObjectEvent E && (E.Reason.EndsWith(DeathReason) || E.ThirdPersonReason.EndsWith(DeathReason)))
                     {
                         message += " =pronouns.Subjective==verb:'ve:afterpronoun= been {{utilitape|jostled}} into useless pieces!";
                     }
@@ -311,7 +316,6 @@ namespace XRL.World.Parts
         {
             return CanAddActivity(FromEvent?.Name);
         }
-
 
         public void AddActivity(int Amount, MinEvent FromEvent = null, Event FromSEvent = null)
         {
@@ -350,7 +354,9 @@ namespace XRL.World.Parts
         }
         public override void TurnTick(long TimeTick, int Amount)
         {
-            if (Activity > 0 && TimeTick - StoredTimeTick > TurnsBetweenJostle && Hitpoints.Value > 0 && !ParentObject.IsInGraveyard())
+            if (Holder != null && Holder.CurrentZone == The.ActiveZone 
+                && Activity > 0 && TimeTick - StoredTimeTick > TurnsBetweenJostle 
+                && Hitpoints.Value > 0 && !ParentObject.IsInGraveyard())
             {
                 Jostle(Activity);
                 ResetActivity();
@@ -405,6 +411,7 @@ namespace XRL.World.Parts
 
             return base.WantEvent(ID, cascade)
                 || ID == GetShortDescriptionEvent.ID
+                || ID == GetDebugInternalsEvent.ID
                 || ID == EquippedEvent.ID
                 || ID == UnequippedEvent.ID
                 || (wantGetWeaponHitDice && ID == GetWeaponHitDiceEvent.ID)
@@ -510,6 +517,9 @@ namespace XRL.World.Parts
                 SB.Append(VANDR).Append("(").AppendColored("G", $"{AdjustActivty(Activity)}")
                     .Append($"){HONLY}{nameof(AdjustActivty)} ({ParentObject.GetModificationSlotsUsed()})");
                 SB.AppendLine();
+                SB.Append(VONLY).Append(VANDR).Append("(").AppendColored("Y", $"{CHANCE_IN}")
+                    .Append($"){HONLY}{nameof(CHANCE_IN)}");
+                SB.AppendLine();
                 SB.Append(VONLY).Append(VANDR).Append("(").AppendColored("R", $"{AdjustActivty(ACTIVE_EXTREMELY)}")
                     .Append($"){HONLY}{nameof(ACTIVE_EXTREMELY)}");
                 SB.AppendLine();
@@ -565,7 +575,7 @@ namespace XRL.World.Parts
                 SB.AppendColored("W", $"TimeTick")
                     .AppendLine();
                 SB.Append(VANDR).Append("(").AppendColored("y", $"{TurnsBetweenJostle}")
-                    .Append($"){HONLY}Current{nameof(TurnsBetweenJostle)}");
+                    .Append($"){HONLY}{nameof(TurnsBetweenJostle)}");
                 SB.AppendLine();
                 SB.Append(VANDR).Append("(").AppendColored("y", $"{The.Game.TimeTicks}")
                     .Append($"){HONLY}Current{nameof(The.Game.TimeTicks)}");
@@ -614,6 +624,94 @@ namespace XRL.World.Parts
                 E.Infix.AppendLine().AppendRules(Event.FinalizeString(SB));
             }
 
+            return base.HandleEvent(E);
+        }
+        public override bool HandleEvent(GetDebugInternalsEvent E)
+        {
+            int oneIn = (int)(10000 / ActivityPerTurn);
+
+            LastJostleSources ??= new();
+            string lastJostleSources = "";
+            if (!LastJostleSources.IsNullOrEmpty())
+            {
+                foreach (string source in LastJostleSources)
+                {
+                    if (!lastJostleSources.IsNullOrEmpty())
+                    {
+                        lastJostleSources += ", ";
+                    }
+                    lastJostleSources += source;
+                }
+            }
+
+            AllJostleSources ??= new();
+            string allJostleSources = "";
+            if (!AllJostleSources.IsNullOrEmpty())
+            {
+                foreach (string source in AllJostleSources)
+                {
+                    if (!allJostleSources.IsNullOrEmpty())
+                    {
+                        allJostleSources += ", ";
+                    }
+                    allJostleSources += source;
+                }
+            }
+
+            string equipmentFrame = ParentObject.GetPropertyOrTag("EquipmentFrameColors");
+
+            if (equipmentFrame.IsNullOrEmpty())
+            {
+                equipmentFrame = "none";
+            }
+            else
+            {
+                string coloredEquipmentFrame = "{{y|";
+                foreach (char c in equipmentFrame)
+                {
+                    coloredEquipmentFrame += $"&{c}{c}";
+                }
+                equipmentFrame = coloredEquipmentFrame += "}}";
+            }
+
+            long currentGameTicks = The.Game.TimeTicks;
+            long ticksDifference = (int)(The.Game.TimeTicks - StoredTimeTick);
+
+            E.AddEntry(this, $"{nameof(AnyNumberOfMods)}", $"{AnyNumberOfMods}");
+            E.AddEntry(this, $"{nameof(ScalingDamageChance)}", $"{ScalingDamageChance}");
+            E.AddEntry(this, $"{nameof(Activity)}", $"{Activity}");
+            E.AddEntry(this, $"{nameof(AdjustActivty)}", $"{AdjustActivty(Activity)}");
+            E.AddEntry(this, $"{nameof(ParentObject.GetModificationSlotsUsed)}", $"{ParentObject.GetModificationSlotsUsed()}");
+            E.AddEntry(this, $"{nameof(CHANCE_IN)}", $"{CHANCE_IN}");
+            E.AddEntry(this, $"{nameof(ACTIVE_EXTREMELY)}", $"{ACTIVE_EXTREMELY}");
+            E.AddEntry(this, $"{nameof(ACTIVE_VERY)}", $"{ACTIVE_VERY}");
+            E.AddEntry(this, $"{nameof(ACTIVE)}", $"{ACTIVE}");
+            E.AddEntry(this, $"{nameof(PASSIVE)}", $"{PASSIVE}");
+            E.AddEntry(this, $"{nameof(PASSIVE_VERY)}", $"{PASSIVE_VERY}");
+            E.AddEntry(this, $"{nameof(PASSIVE_EXTREMELY)}", $"{PASSIVE_EXTREMELY}");
+            E.AddEntry(this, $"{nameof(AverageActivity)}", $"{AverageActivity}");
+            E.AddEntry(this, $"{nameof(ActivityPerTurn)}", $"{ActivityPerTurn}");
+            E.AddEntry(this, $"{nameof(oneIn)}", $"{oneIn}");
+            E.AddEntry(this, $"{nameof(TotalActivity)}", $"{TotalActivity}");
+            E.AddEntry(this, $"{nameof(TimesActive)}", $"{TimesActive}");
+            E.AddEntry(this, $"{nameof(TimesJostled)}", $"{TimesJostled}");
+            E.AddEntry(this, $"{nameof(CumulativeJostledDamage)}", $"{CumulativeJostledDamage}");
+            E.AddEntry(this, $"{nameof(LastJostledDamage)}", $"{LastJostledDamage}");
+            E.AddEntry(this, $"{nameof(lastJostleSources)}", $"{lastJostleSources.Quote()}");
+            E.AddEntry(this, $"{nameof(allJostleSources)}", $"{allJostleSources.Quote()}");
+            E.AddEntry(this, $"{nameof(equipmentFrame)}", $"{equipmentFrame}");
+            E.AddEntry(this, $"{nameof(TurnsBetweenJostle)}", $"{TurnsBetweenJostle}");
+            E.AddEntry(this, $"{nameof(currentGameTicks)}", $"{currentGameTicks}");
+            E.AddEntry(this, $"{nameof(StoredTimeTick)}", $"{StoredTimeTick}");
+            E.AddEntry(this, $"{nameof(ticksDifference)}", $"{ticksDifference}");
+            E.AddEntry(this, $"{nameof(isMeleeWeapon)}", $"{isMeleeWeapon}");
+            E.AddEntry(this, $"{nameof(isMissileWeapon)}", $"{isMissileWeapon}"); 
+            E.AddEntry(this, $"{nameof(isThrownWeapon)}", $"{isThrownWeapon}"); 
+            E.AddEntry(this, $"{nameof(isShield)}", $"{isShield}"); 
+            E.AddEntry(this, $"{nameof(isArmor)}", $"{isArmor}"); 
+            E.AddEntry(this, $"{nameof(isPowerDrawing)}", $"{isPowerDrawing}"); 
+            E.AddEntry(this, $"{nameof(isPowering)}", $"{isPowering}"); 
+            E.AddEntry(this, $"{nameof(isProperlyEquipped)}", $"{isProperlyEquipped}"); 
             return base.HandleEvent(E);
         }
         public override bool HandleEvent(BeforeDestroyObjectEvent E)
@@ -797,9 +895,11 @@ namespace XRL.World.Parts
             for (int i = 0; i < 50; i++)
             {
                 GameObject fixitSpray = GameObjectFactory.Factory.CreateObject("Fixit Spray", BonusModChance: -9999, Context: "Wish");
+                fixitSpray.MakeUnderstood();
                 player.ReceiveObject(fixitSpray);
 
                 GameObject utilitape = GameObjectFactory.Factory.CreateObject("Utilitape", BonusModChance: -9999, Context: "Wish");
+                utilitape.MakeUnderstood();
                 player.ReceiveObject(utilitape);
 
                 if (i < 10)
@@ -812,6 +912,7 @@ namespace XRL.World.Parts
                         antimatterCell.ApplyModification("ModMetered", Actor: player);
                     }
                     antimatterCell.ApplyModification("ModGigantic", Actor: player);
+                    antimatterCell.MakeUnderstood();
                     player.ReceiveObject(antimatterCell);
                 }
             }
@@ -819,6 +920,7 @@ namespace XRL.World.Parts
             visage.ApplyModification("ModNav", Actor: player);
             visage.ApplyModification("ModPolarized", Actor: player);
             visage.ApplyModification("Mod_UD_RegenNanobots", Actor: player);
+            visage.MakeUnderstood();
             player.ReceiveObject(visage);
 
             GameObject zetachromeDagger = GameObjectFactory.Factory.CreateObject("Dagger8", BonusModChance: -9999, Context: "Wish");
@@ -827,6 +929,7 @@ namespace XRL.World.Parts
             zetachromeDagger.ApplyModification("Mod_UD_RegenNanobots", Actor: player);
             zetachromeDagger.ApplyModification("Mod_UD_Ductape", Actor: player);
             zetachromeDagger.ApplyModification("ModFlaming", Actor: player);
+            zetachromeDagger.MakeUnderstood();
             player.ReceiveObject(zetachromeDagger);
 
             GameObject phaseCannon = GameObjectFactory.Factory.CreateObject("Phase Cannon", BonusModChance: -9999, Context: "Wish");
@@ -835,6 +938,7 @@ namespace XRL.World.Parts
             phaseCannon.ApplyModification("Mod_UD_RegenNanobots", Actor: player);
             phaseCannon.ApplyModification("Mod_UD_Ductape", Actor: player);
             phaseCannon.ApplyModification("ModWillowy", Actor: player);
+            phaseCannon.MakeUnderstood();
             player.ReceiveObject(phaseCannon);
 
             GameObject antigravBoots = GameObjectFactory.Factory.CreateObject("Anti-Gravity Boots", BonusModChance: -9999, Context: "Wish");
@@ -843,6 +947,7 @@ namespace XRL.World.Parts
             antigravBoots.ApplyModification("Mod_UD_RegenNanobots", Actor: player);
             antigravBoots.ApplyModification("Mod_UD_Ductape", Actor: player);
             antigravBoots.ApplyModification("ModRefractive", Actor: player);
+            antigravBoots.MakeUnderstood();
             player.ReceiveObject(antigravBoots);
 
             GameObject flawlessCrysteelShield = GameObjectFactory.Factory.CreateObject("Flawless Crysteel Shield", BonusModChance: -9999, Context: "Wish");
@@ -851,12 +956,14 @@ namespace XRL.World.Parts
             flawlessCrysteelShield.ApplyModification("Mod_UD_RegenNanobots", Actor: player);
             flawlessCrysteelShield.ApplyModification("Mod_UD_Ductape", Actor: player);
             flawlessCrysteelShield.ApplyModification("ModRefractive", Actor: player);
+            flawlessCrysteelShield.MakeUnderstood();
             player.ReceiveObject(flawlessCrysteelShield);
 
             GameObject transkineticCuffs = GameObjectFactory.Factory.CreateObject("Transkinetic Cuffs", BonusModChance: -9999, Context: "Wish");
             transkineticCuffs.ApplyModification("ModSturdy", Actor: player);
             transkineticCuffs.ApplyModification("ModOverloaded", Actor: player);
             transkineticCuffs.ApplyModification("Mod_UD_RegenNanobots", Actor: player);
+            transkineticCuffs.MakeUnderstood();
             player.ReceiveObject(transkineticCuffs);
 
             player.RequirePart<BitLocker>().AddAllBits(6000);

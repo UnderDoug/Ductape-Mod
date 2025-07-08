@@ -2,9 +2,9 @@
 <objects>
   <object Name="Utilitape" Inherits="Tool">
     <!-- TileColor is black pixels, DetailColor is white pixels -->
-    <part Name="Render" DisplayName="utilitape" Tile="Items/UD_Utilitape.png" TileColor="&amp;y" DetailColor="K" RenderString="012" ColorString="&amp;w" RenderLayer="5" />
+    <part Name="Render" DisplayName="{{utilitape|utilitape}}" Tile="Items/UD_Utilitape.png" TileColor="&amp;y" DetailColor="K" RenderString="012" ColorString="&amp;w" RenderLayer="5" />
     <part Name="Description" Short="A long sheaf of coarse fabric, plastifer-lacquered and layered with quick resin, sits wound about a carboard spool and a promise of endless possibilities." />
-    <part Name="RulesDescription" Text="Applies the {{y|held together by utilitape}} modification to applicable items." />
+    <part Name="RulesDescription" Text="Applies the {{y|held together by}} {{utilitape|utilitape}} modification to applicable items." />
     <part Name="Commerce" Value="45" />
     <part Name="Applicator" />
     <part Name="UtilitapeApplicator" />

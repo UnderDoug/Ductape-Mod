@@ -16,7 +16,7 @@ namespace XRL.World.Parts
     [Serializable]
     public class UtilitapeApplicator : IScribedPart
     {
-        public static readonly string APPLIED_SOUND = "sfx_equip_material_generic_cloth"; // "Sounds/Interact/sfx_interact_bandage_apply";
+        public static readonly string APPLIED_SOUND = "sfx_equip_material_generic_cloth";
 
         public override bool WantEvent(int ID, int Cascade)
         {
@@ -39,7 +39,7 @@ namespace XRL.World.Parts
                 List<GameObject> objects = E.Actor.GetInventoryAndEquipment(o => CanTape(o, E.Actor));
                 if (objects.Count == 0)
                 {
-                    E.Actor.Fail("You have no items that need utilitape.");
+                    E.Actor.Fail("You have no items that need {{utilitape|utilitape}}.");
                     return false;
                 }
                 GameObject gameObject = PickItem.ShowPicker(objects, null, PickItem.PickItemDialogStyle.SelectItemDialog, E.Actor);
@@ -52,7 +52,7 @@ namespace XRL.World.Parts
                 {
                     ParentObject.MakeUnderstood();
                 }
-                string message = gameObject.Does("become", int.MaxValue, null, null, null, AsIfKnown: false, Single: false, NoConfusion: false, NoColor: false, Stripped: false, WithoutTitles: true, Short: true, BaseOnly: false, WithIndefiniteArticle: false, null, IndicateHidden: false, Pronoun: false, SecondPerson: true, null) + " held together by {{Y-y-y-y-K distribution|utilitape}}";
+                string message = gameObject.Does("become", int.MaxValue, null, null, null, AsIfKnown: false, Single: false, NoConfusion: false, NoColor: false, Stripped: false, WithoutTitles: true, Short: true, BaseOnly: false, WithIndefiniteArticle: false, null, IndicateHidden: false, Pronoun: false, SecondPerson: true, null) + " held together by {{utilitape|utilitape}}";
                 bool flag = gameObject.Understood();
                 if (!ItemModding.ApplyModification(gameObject, nameof(Mod_UD_Ductape), DoRegistration: true, E.Actor))
                 {
