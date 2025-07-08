@@ -63,23 +63,14 @@ namespace XRL.World.Parts
         public int LastJostledDamage = 0;
 
         private bool isMeleeWeapon => ParentObject != null && ParentObject.TryGetPart(out MeleeWeapon meleeWeapon) && !meleeWeapon.IsImprovised();
-
         private bool isMissileWeapon => ParentObject != null && ParentObject.HasPart<MissileWeapon>();
-
         private bool isThrownWeapon => ParentObject != null && ParentObject.TryGetPart(out ThrownWeapon thrownWeapon) && !thrownWeapon.IsImprovised();
-
         private bool isShield => ParentObject != null && ParentObject.HasPart<Shield>();
-
         private bool isArmor => ParentObject != null && ParentObject.TryGetPart(out Armor armor) && !armor.WornOn.IsNullOrEmpty();
-
         private bool isEquipment => isMeleeWeapon || isMissileWeapon || isThrownWeapon || isShield || isArmor;
-
         private bool isPowerDrawing => ParentObject != null && ParentObject.UsesCharge();
-
         private bool isPowering => ParentObject != null && ParentObject.HasPartDescendedFrom<IEnergyCell>();
-
         private bool isProperlyEquipped => ParentObject != null && ParentObject.IsEquippedProperly();
-
         private bool isWorn => ParentObject != null && ParentObject.IsWorn();
 
         private Statistic Hitpoints => ParentObject?.GetStat("Hitpoints");
@@ -97,6 +88,7 @@ namespace XRL.World.Parts
             : base(Tier)
         {
         }
+
         public override bool AllowStaticRegistration()
         {
             return true;
@@ -118,6 +110,7 @@ namespace XRL.World.Parts
         {
             return CanTape(Object);
         }
+
         public static bool CanTape(GameObject Object, string Context = "")
         {
             if (Context == "Internal" && Object != null)
@@ -128,34 +121,31 @@ namespace XRL.World.Parts
                     $"{Object.ShortDisplayNameStripped})",
                     Indent: Debug.LastIndent + 1, Toggle: doDebug);
             }
-            
-            // AnyNum || ModsIsMax  ? Result
-            //   true || true       ? true
-            //   true || false      ? true
-            //  false || true       ? true
-            //  false || false      ? false
+            if (Object == null)
+            {
+                return false;
+            }
 
-            bool notNull = Object != null;
+            if (!Object.HasStat("Hitpoints"))
+            {
+                return false;
+            }
 
-            bool hasHitpoints =
-                notNull
-             && Object.HasStat("Hitpoints");
+            if (!AnyNumberOfMods && Object.GetModificationSlotsUsed() != RuleSettings.MAXIMUM_ITEM_MODS)
+            {
+                return false;
+            }
 
-            bool correctSlotsUsed =
-                notNull
-             && (AnyNumberOfMods || (Object.GetModificationSlotsUsed() == RuleSettings.MAXIMUM_ITEM_MODS));
-
-            return notNull && hasHitpoints && correctSlotsUsed
-                && (Object.UsesCharge()
+            return Object.UsesCharge()
                 || Object.HasPart<MeleeWeapon>()
                 || Object.HasPart<MissileWeapon>()
                 || Object.HasPart<ThrownWeapon>()
                 || Object.HasPart<Shield>()
-                || Object.HasPart<Armor>());
+                || Object.HasPart<Armor>();
         }
         public static string GetDescription()
         {
-            return Grammar.InitCap(MOD_NAME_COLORED) + ": this item can be modified one additional time (excluding this modification) but has a small chance whenever it's used to take damage equal to 1/4 of its max HP.";
+            return Grammar.InitCap(MOD_NAME_COLORED) + ": this item can be modified one additional time (excluding this modification) but has a small chance whenever it's used to take damage equal to 1/4 of its max hitpoints.";
         }
         public override void ApplyModification()
         {
@@ -499,7 +489,7 @@ namespace XRL.World.Parts
                  && isEquipment
                  && isProperlyEquipped;
 
-                SB.AppendColored("M", MOD_NAME).Append(": ");
+                SB.AppendColored("M", nameof(Mod_UD_Ductape)).Append(": ");
                 SB.AppendLine();
 
                 SB.AppendColored("W", $"Options")
