@@ -172,21 +172,21 @@ namespace XRL.World.Parts
             base.Attach();
         }
 
-        public static int AdjustActivty(GameObject Object, int Activity)
+        public static int AdjustActivity(GameObject Object, int Activity)
         {
             int output = Activity;
             if (ScalingDamageChance)
             {
                 int modCount = Object.GetModificationSlotsUsed();
-                float multiplier = 1;
-                multiplier += 3 - Math.Max(1, Math.Min(modCount, 3));
-                output = (int)(output * (1.0f / Math.Min(multiplier, 1)));
+                float divisor = 1;
+                divisor += 3 - Math.Max(0, Math.Min(modCount, 3));
+                output = (int)(output * (1.0f / Math.Max(divisor, 1)));
             }
             return output;
         }
-        public int AdjustActivty(int Activity)
+        public int AdjustActivity(int Activity)
         {
-            return AdjustActivty(ParentObject, Activity);
+            return AdjustActivity(ParentObject, Activity);
         }
 
         public static bool Jostle(GameObject Item, int Activity, out int JostledDamage)
@@ -201,7 +201,7 @@ namespace XRL.World.Parts
             JostledDamage = 0;
             if (UD_JostleObjectEvent.CheckFor(Item, Activity))
             {
-                int activity = AdjustActivty(Item, Activity);
+                int activity = AdjustActivity(Item, Activity);
                 int activityOneInPadding = CHANCE_IN.ToString().Length;
                 string activityString = activity.ToString().PadLeft(activityOneInPadding, ' ');
                 if (activity.ChanceIn(CHANCE_IN))
@@ -320,22 +320,26 @@ namespace XRL.World.Parts
         public void AddActivity(int Amount, MinEvent FromEvent = null, Event FromSEvent = null)
         {
             ActivityAdded ??= new();
-            Activity += Amount;
-            TotalActivity += Amount;
-            TimesActive++;
-            if (FromEvent != null)
+            int activity = UD_GetJostleActivityEvent.For(ParentObject, Amount, FromEvent, FromSEvent);
+            if (activity != 0)
             {
-                string @event = FromEvent.GetType().Name;
-                ActivityAdded.TryAdd(@event);
-                AllJostleSources.TryAdd(@event);
-                CurrentJostleSources.TryAdd(@event);
-            }
-            if (FromSEvent != null)
-            {
-                string sEvent = FromSEvent.ID;
-                ActivityAdded.TryAdd(sEvent);
-                AllJostleSources.TryAdd(sEvent);
-                CurrentJostleSources.TryAdd(sEvent);
+                Activity += Amount;
+                TotalActivity += Amount;
+                TimesActive++;
+                if (FromEvent != null)
+                {
+                    string @event = FromEvent.GetType().Name;
+                    ActivityAdded.TryAdd(@event);
+                    AllJostleSources.TryAdd(@event);
+                    CurrentJostleSources.TryAdd(@event);
+                }
+                if (FromSEvent != null)
+                {
+                    string sEvent = FromSEvent.ID;
+                    ActivityAdded.TryAdd(sEvent);
+                    AllJostleSources.TryAdd(sEvent);
+                    CurrentJostleSources.TryAdd(sEvent);
+                }
             }
         }
 
@@ -514,28 +518,34 @@ namespace XRL.World.Parts
                 SB.Append(VANDR).Append("(").AppendColored("G", $"{Activity}")
                     .Append($"){HONLY}{nameof(Activity)}");
                 SB.AppendLine();
-                SB.Append(VANDR).Append("(").AppendColored("G", $"{AdjustActivty(Activity)}")
-                    .Append($"){HONLY}{nameof(AdjustActivty)} ({ParentObject.GetModificationSlotsUsed()})");
+                SB.Append(VANDR).Append("(").AppendColored("G", $"{AdjustActivity(Activity)}")
+                    .Append($"){HONLY}{nameof(AdjustActivity)} ({ParentObject.GetModificationSlotsUsed()})");
                 SB.AppendLine();
                 SB.Append(VONLY).Append(VANDR).Append("(").AppendColored("Y", $"{CHANCE_IN}")
                     .Append($"){HONLY}{nameof(CHANCE_IN)}");
                 SB.AppendLine();
-                SB.Append(VONLY).Append(VANDR).Append("(").AppendColored("R", $"{AdjustActivty(ACTIVE_EXTREMELY)}")
+                SB.Append(VONLY).Append(VANDR).Append("(").AppendColored("R", $"{AdjustActivity(ACTIVE_EXTREMELY)}")
+                    .Append("/").AppendColored("R", $"{ACTIVE_EXTREMELY}")
                     .Append($"){HONLY}{nameof(ACTIVE_EXTREMELY)}");
                 SB.AppendLine();
-                SB.Append(VONLY).Append(VANDR).Append("(").AppendColored("r", $"{AdjustActivty(ACTIVE_VERY)}")
+                SB.Append(VONLY).Append(VANDR).Append("(").AppendColored("r", $"{AdjustActivity(ACTIVE_VERY)}")
+                    .Append("/").AppendColored("r", $"{ACTIVE_VERY}")
                     .Append($"){HONLY}{nameof(ACTIVE_VERY)}");
                 SB.AppendLine();
-                SB.Append(VONLY).Append(VANDR).Append("(").AppendColored("w", $"{AdjustActivty(ACTIVE)}")
+                SB.Append(VONLY).Append(VANDR).Append("(").AppendColored("w", $"{AdjustActivity(ACTIVE)}")
+                    .Append("/").AppendColored("w", $"{ACTIVE}")
                     .Append($"){HONLY}{nameof(ACTIVE)}");
                 SB.AppendLine();
-                SB.Append(VONLY).Append(VANDR).Append("(").AppendColored("W", $"{AdjustActivty(PASSIVE)}")
+                SB.Append(VONLY).Append(VANDR).Append("(").AppendColored("W", $"{AdjustActivity(PASSIVE)}")
+                    .Append("/").AppendColored("W", $"{PASSIVE}")
                     .Append($"){HONLY}{nameof(PASSIVE)}");
                 SB.AppendLine();
-                SB.Append(VONLY).Append(VANDR).Append("(").AppendColored("g", $"{AdjustActivty(PASSIVE_VERY)}")
+                SB.Append(VONLY).Append(VANDR).Append("(").AppendColored("g", $"{AdjustActivity(PASSIVE_VERY)}")
+                    .Append("/").AppendColored("g", $"{PASSIVE_VERY}")
                     .Append($"){HONLY}{nameof(PASSIVE_VERY)}");
                 SB.AppendLine();
-                SB.Append(VONLY).Append(TANDR).Append("(").AppendColored("G", $"{AdjustActivty(PASSIVE_EXTREMELY)}")
+                SB.Append(VONLY).Append(TANDR).Append("(").AppendColored("G", $"{AdjustActivity(PASSIVE_EXTREMELY)}")
+                    .Append("/").AppendColored("G", $"{PASSIVE_EXTREMELY}")
                     .Append($"){HONLY}{nameof(PASSIVE_EXTREMELY)}");
                 SB.AppendLine();
                 SB.Append(VANDR).Append("(").AppendColored("M", $"{AverageActivity}")
@@ -658,21 +668,7 @@ namespace XRL.World.Parts
                 }
             }
 
-            string equipmentFrame = ParentObject.GetPropertyOrTag("EquipmentFrameColors");
-
-            if (equipmentFrame.IsNullOrEmpty())
-            {
-                equipmentFrame = "none";
-            }
-            else
-            {
-                string coloredEquipmentFrame = "{{y|";
-                foreach (char c in equipmentFrame)
-                {
-                    coloredEquipmentFrame += $"&{c}{c}";
-                }
-                equipmentFrame = coloredEquipmentFrame += "}}";
-            }
+            string equipmentFrame = ParentObject.GetPropertyOrTag("EquipmentFrameColors") ?? "none";
 
             long currentGameTicks = The.Game.TimeTicks;
             long ticksDifference = (int)(The.Game.TimeTicks - StoredTimeTick);
@@ -680,15 +676,15 @@ namespace XRL.World.Parts
             E.AddEntry(this, $"{nameof(AnyNumberOfMods)}", $"{AnyNumberOfMods}");
             E.AddEntry(this, $"{nameof(ScalingDamageChance)}", $"{ScalingDamageChance}");
             E.AddEntry(this, $"{nameof(Activity)}", $"{Activity}");
-            E.AddEntry(this, $"{nameof(AdjustActivty)}", $"{AdjustActivty(Activity)}");
+            E.AddEntry(this, $"{nameof(AdjustActivity)}", $"{AdjustActivity(Activity)}");
             E.AddEntry(this, $"{nameof(ParentObject.GetModificationSlotsUsed)}", $"{ParentObject.GetModificationSlotsUsed()}");
             E.AddEntry(this, $"{nameof(CHANCE_IN)}", $"{CHANCE_IN}");
-            E.AddEntry(this, $"{nameof(ACTIVE_EXTREMELY)}", $"{ACTIVE_EXTREMELY}");
-            E.AddEntry(this, $"{nameof(ACTIVE_VERY)}", $"{ACTIVE_VERY}");
-            E.AddEntry(this, $"{nameof(ACTIVE)}", $"{ACTIVE}");
-            E.AddEntry(this, $"{nameof(PASSIVE)}", $"{PASSIVE}");
-            E.AddEntry(this, $"{nameof(PASSIVE_VERY)}", $"{PASSIVE_VERY}");
-            E.AddEntry(this, $"{nameof(PASSIVE_EXTREMELY)}", $"{PASSIVE_EXTREMELY}");
+            E.AddEntry(this, $"{nameof(ACTIVE_EXTREMELY)}", $"{AdjustActivity(ACTIVE_EXTREMELY)}/{ACTIVE_EXTREMELY}");
+            E.AddEntry(this, $"{nameof(ACTIVE_VERY)}", $"{AdjustActivity(ACTIVE_VERY)}/{ACTIVE_VERY}");
+            E.AddEntry(this, $"{nameof(ACTIVE)}", $"{AdjustActivity(ACTIVE)}/{ACTIVE}");
+            E.AddEntry(this, $"{nameof(PASSIVE)}", $"{AdjustActivity(PASSIVE)}/{PASSIVE}");
+            E.AddEntry(this, $"{nameof(PASSIVE_VERY)}", $"{AdjustActivity(PASSIVE_VERY)}/{PASSIVE_VERY}");
+            E.AddEntry(this, $"{nameof(PASSIVE_EXTREMELY)}", $"{AdjustActivity(PASSIVE_EXTREMELY)}/{PASSIVE_EXTREMELY}");
             E.AddEntry(this, $"{nameof(AverageActivity)}", $"{AverageActivity}");
             E.AddEntry(this, $"{nameof(ActivityPerTurn)}", $"{ActivityPerTurn}");
             E.AddEntry(this, $"{nameof(oneIn)}", $"{oneIn}");
@@ -699,7 +695,7 @@ namespace XRL.World.Parts
             E.AddEntry(this, $"{nameof(LastJostledDamage)}", $"{LastJostledDamage}");
             E.AddEntry(this, $"{nameof(lastJostleSources)}", $"{lastJostleSources.Quote()}");
             E.AddEntry(this, $"{nameof(allJostleSources)}", $"{allJostleSources.Quote()}");
-            E.AddEntry(this, $"{nameof(equipmentFrame)}", $"{equipmentFrame}");
+            E.AddEntry(this, $"{nameof(equipmentFrame)}", $"{equipmentFrame.Quote()}");
             E.AddEntry(this, $"{nameof(TurnsBetweenJostle)}", $"{TurnsBetweenJostle}");
             E.AddEntry(this, $"{nameof(currentGameTicks)}", $"{currentGameTicks}");
             E.AddEntry(this, $"{nameof(StoredTimeTick)}", $"{StoredTimeTick}");

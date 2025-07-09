@@ -61,12 +61,12 @@
   -->
   <option
         ID="Option_UD_Ductape_Mod_AnyNumberOfMods"
-        DisplayText="Enable &quot;held together by utilitape&quot; to be applied before an item has the maximum mods applied."
+        DisplayText="Enable &quot;held together by {{utilitape|utilitape}}&quot; to be applied before an item has the maximum mods applied."
         Category="Mod: UD Ductape Mod"
         Type="Checkbox"
         Default="No" >
     <helptext>
-      When enabled, &quot;held together by utilitape&quot; can be applied to otherwise eligable items irrespective of how many mods they already have applied.
+      When enabled, &quot;held together by {{utilitape|utilitape}}&quot; can be applied to otherwise eligable items irrespective of how many mods they already have applied.
 
       The default behaviour is that the mod can only be applied to items that already have the maximum number of mods.
 
@@ -84,7 +84,7 @@
         Type="Checkbox"
         Default="No" >
     <helptext>
-      When enabled, &quot;held together by utilitape&quot; will take into account how many mods are currently applied to an item when determining how likely the item will be damaged while being used.
+      When enabled, &quot;held together by {{utilitape|utilitape}}&quot; will take into account how many mods are currently applied to an item when determining how likely the item will be damaged while being used.
       
       Excluding utilitape, the following schedule lays out the adjustment to damage chance:
       {{G|0}}: won't be damaged.

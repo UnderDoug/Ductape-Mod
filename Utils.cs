@@ -47,21 +47,6 @@ namespace UD_Ductape_Mod
 
         public static ModInfo ThisMod => ModManager.GetMod(MOD_ID);
 
-        [VariableReplacer]
-        public static string nbsp(DelegateContext Context)
-        {
-            string nbsp = "\xFF";
-            string output = nbsp;
-            if (!Context.Parameters.IsNullOrEmpty() && int.TryParse(Context.Parameters[0], out int count))
-            {
-                for (int i = 1; i < count; i++)
-                {
-                    output += nbsp;
-                }
-            }
-            return output;
-        }
-
         public static bool RegisterGameLevelEventHandlers()
         {
             Debug.Entry(1, $"Registering XRLGame Event Handlers...", Indent: 1);
@@ -196,8 +181,6 @@ namespace UD_Ductape_Mod
 
             return output;
         }
-
-        public static Random RndUD = Stat.GetSeededRandomGenerator("UD_Blink_Mutation");
 
         // Ripped wholesale from ModGigantic.
         public static string GetProcessedItem(List<string> item, bool second, List<List<string>> items, GameObject obj)

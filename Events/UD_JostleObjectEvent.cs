@@ -26,7 +26,6 @@ namespace XRL.World
 
         public GameObject Item;
         public int Activity;
-        public int OriginalAmount;
 
         public override int GetCascadeLevel()
         {

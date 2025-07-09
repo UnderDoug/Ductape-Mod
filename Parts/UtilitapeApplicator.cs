@@ -64,7 +64,7 @@ namespace XRL.World.Parts
                 if (E.Actor.IsPlayer())
                 {
                     Popup.Show(message);
-                    Popup.Show(GameText.VariableReplace($"=object.T= used the entire roll of =subject.name=!", ParentObject, The.Player));
+                    Popup.Show(GameText.VariableReplace("=object.T= used the entire roll of {{utilitape|=subject.name=!}}", ParentObject, The.Player));
                 }
                 if (flag && !gameObject.Understood())
                 {
