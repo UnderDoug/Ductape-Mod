@@ -32,6 +32,9 @@ namespace XRL.World.Parts
 
         public static int TurnsBetweenJostle = 1;
 
+        [SerializeField]
+        private int StoredTurns = 0;
+
         public const int CHANCE_IN = 10000;
 
         public const int ACTIVE_EXTREMELY = 625;
@@ -53,9 +56,6 @@ namespace XRL.World.Parts
         public List<string> AllJostleSources = new();
         private List<string> CurrentJostleSources = new();
         private List<string> LastJostleSources = new();
-
-        [SerializeField]
-        private double StoredTimeTick = 0;
 
         [SerializeField]
         private int TotalActivity = 0;
@@ -352,22 +352,6 @@ namespace XRL.World.Parts
             Activity = 0;
         }
 
-        public override bool WantTurnTick()
-        {
-            return true;
-        }
-        public override void TurnTick(long TimeTick, int Amount)
-        {
-            if (Holder != null && Holder.CurrentZone == The.ActiveZone 
-                && Activity > 0 && TimeTick - StoredTimeTick > TurnsBetweenJostle 
-                && Hitpoints.Value > 0 && !ParentObject.IsInGraveyard())
-            {
-                Jostle(Activity);
-                ResetActivity();
-                StoredTimeTick = TimeTick;
-            }
-            base.TurnTick(TimeTick, Amount);
-        }
         private Dictionary<string, int> StringyJostleEventIDs => new()
         {
             { "CommandFireMissile", ACTIVE_VERY },
@@ -380,6 +364,7 @@ namespace XRL.World.Parts
         };
         public override void Register(GameObject Object, IEventRegistrar Registrar)
         {
+            Registrar.Register(EndTurnEvent.ID, EventOrder.EXTREMELY_EARLY);
             Registrar.Register(BeforeDestroyObjectEvent.ID, EventOrder.EXTREMELY_EARLY);
             Registrar.Register(ChargeUsedEvent.ID, EventOrder.EXTREMELY_EARLY); // Powered Object
             Registrar.Register(UseChargeEvent.ID, EventOrder.EXTREMELY_LATE); // Energy Cells
@@ -423,6 +408,18 @@ namespace XRL.World.Parts
                 || (wantGetThrownWeaponFlexPhaseProvider && ID == GetThrownWeaponFlexPhaseProviderEvent.ID)
                 || (wantShieldBlock && ID == AfterShieldBlockEvent.ID)
                 || (wantObjectEnteredCell && ID == ObjectEnteredCellEvent.ID);
+        }
+        public override bool HandleEvent(EndTurnEvent E)
+        {
+            if (Holder != null && Holder.CurrentZone == The.ActiveZone
+                && Activity > 0 && ++StoredTurns > TurnsBetweenJostle
+                && Hitpoints.Value > 0 && !ParentObject.IsInGraveyard())
+            {
+                Jostle(Activity);
+                ResetActivity();
+                StoredTurns = 0;
+            }
+            return base.HandleEvent(E);
         }
         public override bool HandleEvent(GetDisplayNameEvent E)
         {
@@ -590,10 +587,10 @@ namespace XRL.World.Parts
                 SB.Append(VANDR).Append("(").AppendColored("y", $"{The.Game.TimeTicks}")
                     .Append($"){HONLY}Current{nameof(The.Game.TimeTicks)}");
                 SB.AppendLine();
-                SB.Append(VANDR).Append("(").AppendColored("y", $"{StoredTimeTick}")
-                    .Append($"){HONLY}{nameof(StoredTimeTick)}");
+                SB.Append(VANDR).Append("(").AppendColored("y", $"{StoredTurns}")
+                    .Append($"){HONLY}{nameof(StoredTurns)}");
                 SB.AppendLine();
-                SB.Append(TANDR).Append("(").AppendColored("y", $"{The.Game.TimeTicks - StoredTimeTick}")
+                SB.Append(TANDR).Append("(").AppendColored("y", $"{The.Game.TimeTicks - StoredTurns}")
                     .Append($"){HONLY}Difference");
                 SB.AppendLine();
 
@@ -671,7 +668,7 @@ namespace XRL.World.Parts
             string equipmentFrame = ParentObject.GetPropertyOrTag("EquipmentFrameColors") ?? "none";
 
             long currentGameTicks = The.Game.TimeTicks;
-            long ticksDifference = (int)(The.Game.TimeTicks - StoredTimeTick);
+            long ticksDifference = (int)(The.Game.TimeTicks - StoredTurns);
 
             E.AddEntry(this, $"{nameof(AnyNumberOfMods)}", $"{AnyNumberOfMods}");
             E.AddEntry(this, $"{nameof(ScalingDamageChance)}", $"{ScalingDamageChance}");
@@ -698,7 +695,7 @@ namespace XRL.World.Parts
             E.AddEntry(this, $"{nameof(equipmentFrame)}", $"{equipmentFrame.Quote()}");
             E.AddEntry(this, $"{nameof(TurnsBetweenJostle)}", $"{TurnsBetweenJostle}");
             E.AddEntry(this, $"{nameof(currentGameTicks)}", $"{currentGameTicks}");
-            E.AddEntry(this, $"{nameof(StoredTimeTick)}", $"{StoredTimeTick}");
+            E.AddEntry(this, $"{nameof(StoredTurns)}", $"{StoredTurns}");
             E.AddEntry(this, $"{nameof(ticksDifference)}", $"{ticksDifference}");
             E.AddEntry(this, $"{nameof(isMeleeWeapon)}", $"{isMeleeWeapon}");
             E.AddEntry(this, $"{nameof(isMissileWeapon)}", $"{isMissileWeapon}"); 
