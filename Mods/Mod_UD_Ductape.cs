@@ -264,7 +264,8 @@ namespace XRL.World.Parts
             {
                 bool isEquipped = Equipper != null;
                 string equipped = isEquipped ? "equipped " : "";
-                string message = $"=object.T's= {equipped}{ParentObject.BaseDisplayName} took {JostledDamage} from being knocked around!";
+                string damageSource = "from being {{utilitape|jostled}}!";
+                string message = $"=object.T's= {equipped}{ParentObject.BaseDisplayName} took {JostledDamage} damage {damageSource}";
 
                 if (Hitpoints.Value <= (int)Math.Ceiling(Hitpoints.BaseValue * 0.25) && Hitpoints.Value > 0)
                 {
@@ -284,7 +285,7 @@ namespace XRL.World.Parts
                         message += " =pronouns.Subjective==verb:'ve:afterpronoun= been {{utilitape|jostled}} into useless pieces!";
                     }
                 }
-                Popup.Show(GameText.VariableReplace(message, Subject: ParentObject, Object: Holder));
+                Popup.Show(GameText.VariableReplace(message, Subject: ParentObject, Object: Holder), LogMessage: false);
                 AutoAct.Interrupt();
             }
         }
@@ -579,19 +580,13 @@ namespace XRL.World.Parts
                     .Append($"){HONLY}EquipmentFrameColors");
                 SB.AppendLine();
 
-                SB.AppendColored("W", $"TimeTick")
+                SB.AppendColored("W", $"Turns")
                     .AppendLine();
                 SB.Append(VANDR).Append("(").AppendColored("y", $"{TurnsBetweenJostle}")
                     .Append($"){HONLY}{nameof(TurnsBetweenJostle)}");
                 SB.AppendLine();
-                SB.Append(VANDR).Append("(").AppendColored("y", $"{The.Game.TimeTicks}")
-                    .Append($"){HONLY}Current{nameof(The.Game.TimeTicks)}");
-                SB.AppendLine();
-                SB.Append(VANDR).Append("(").AppendColored("y", $"{StoredTurns}")
+                SB.Append(TANDR).Append("(").AppendColored("y", $"{StoredTurns}")
                     .Append($"){HONLY}{nameof(StoredTurns)}");
-                SB.AppendLine();
-                SB.Append(TANDR).Append("(").AppendColored("y", $"{The.Game.TimeTicks - StoredTurns}")
-                    .Append($"){HONLY}Difference");
                 SB.AppendLine();
 
                 SB.AppendColored("W", $"Bools")

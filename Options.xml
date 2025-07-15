@@ -50,7 +50,10 @@
       When enabled, internal debug information relating to the &quot;held together by utilitape&quot; modification will be displayed when [{{W|l}}]ooking at anything with the relevant parts.
 
       {{M|Ductape}}:
-      {{W|Stats}}: Shows statistical information about the modification's performance.
+      {{W|Options}}: Shows values associated with the options for this modification.
+      {{W|State}}: Shows information about the modification's current state.
+      {{W|Turns}}: Shows turn-based information about the modification.
+      {{W|Bools}}: Shows several of the modification's true/false values.
 
       The default is {{w|Disabled}}.
     </helptext>
