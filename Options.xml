@@ -63,6 +63,34 @@
   Mod Options
   -->
   <option
+        ID="Option_UD_Ductape_Mod_ActivityMultiplier"
+        DisplayText="How much to multiply activity amounts by when &quot;held together by {{utilitape|utilitape}}&quot; jostles an item."
+        Category="Mod: UD Ductape Mod"
+        Type="Combo"
+        Default="1" 
+        Values="0.5,0.67,1,1.5,2" >
+    <helptext>
+      3 Modifiers is surprisingly well balanced, so the addition of a 4th needs to be at a significant cost to remain balanced, however balance is often subjective.
+      
+      Activity accumulated by &quot;held together by {{utilitape|utilitape}}&quot; each turn will be multiplied by this option's setting before being tested as odds against a chance in 10,000 that a jostled item will take damage.
+
+      During each turn, a number of different actions that can be taken by the item itself or its holder will tell &quot;held together by {{utilitape|utilitape}}&quot; to accumulate activity of varying amounts (but typically only once per action per turn).
+
+      An item idly drawing charge adds {{G|5}} activity (extremely passive).
+
+      An equipped Body slot Armor when attacked (whether hit or not) adds {{R|625}} activity (extremely active).
+
+      If the combined amount of activity in a turn is {{G|0}}, then the item is {{G|completely safe}}.
+
+      If the amount of activity {{R|exceeds 10,000}} in a turn, then {{R|damage is guaranteed}}.
+
+      The {{r|higher}} this option is set, the {{r|more likely}} an item is to {{r|take damage}} each turn it's involved in activity.
+
+      The default is {{W|1}}.
+    </helptext>
+  </option>
+  
+  <option
         ID="Option_UD_Ductape_Mod_AnyNumberOfMods"
         DisplayText="Enable &quot;held together by {{utilitape|utilitape}}&quot; to be applied before an item has the maximum mods applied."
         Category="Mod: UD Ductape Mod"

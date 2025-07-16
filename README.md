@@ -12,4 +12,4 @@ Although the amount is only tiny, even simply walking around with a utilitaped i
 
 Due to taking damage from activity and not being broken outright, the sturdy modification won't stop your item from being jostled into a broken state (once it receives damage greater than 75% of it's total). This should be ample time to repair it, especially since once it's broken it's much harder to use "actively" and is at lower risk (but not _no_ risk) of taking further damage.
 
-3 Modifiers is surprisingly well balanced, so the addition of a 4th needs to be at a significant cost to remain balanced. Options have been included to make 
+3 Modifiers is surprisingly well balanced, so the addition of a 4th needs to be at a significant cost to remain balanced. Options have been included to make jostling more or less likely to occur so that the balance can be tweaked to the user's liking.

@@ -29,8 +29,9 @@ namespace XRL.World.Parts
         private static bool DebugDuctapeModDescriptions => Options.DebugDuctapeModDescriptions;
         private static bool AnyNumberOfMods => Options.AnyNumberOfMods;
         private static bool ScalingDamageChance => Options.ScalingDamageChance;
+        private static float ActivityMultiplier => Options.ActivityMultiplier == 0 ? 1f : Options.ActivityMultiplier;
 
-        public static int TurnsBetweenJostle = 1;
+        public static int TurnsBetweenJostle = 0;
 
         [SerializeField]
         private int StoredTurns = 0;
@@ -182,7 +183,7 @@ namespace XRL.World.Parts
                 divisor += 3 - Math.Max(0, Math.Min(modCount, 3));
                 output = (int)(output * (1.0f / Math.Max(divisor, 1)));
             }
-            return output;
+            return (int)(output * ActivityMultiplier);
         }
         public int AdjustActivity(int Activity)
         {
@@ -498,11 +499,24 @@ namespace XRL.World.Parts
                  && isEquipment
                  && isProperlyEquipped;
 
+                string activityMultiplierColor = ActivityMultiplier switch
+                {
+                    0.5f => "G",
+                    0.67f => "g",
+                    1 => "W",
+                    1.5f => "r",
+                    2f => "R",
+                    _ => "K",
+                };
+
                 SB.AppendColored("M", nameof(Mod_UD_Ductape)).Append(": ");
                 SB.AppendLine();
 
                 SB.AppendColored("W", $"Options")
                     .AppendLine();
+                SB.Append(VANDR).Append("(").AppendColored("activityMultiplierColor", $"{ActivityMultiplier}")
+                    .Append($"){HONLY}{nameof(ActivityMultiplier)}");
+                SB.AppendLine();
                 SB.Append(VANDR).Append($"[").Append(AnyNumberOfMods.YehNah()).Append($"]")
                     .Append(HONLY).Append($"{nameof(AnyNumberOfMods)}: ")
                     .AppendColored("B", $"{AnyNumberOfMods}");
@@ -709,7 +723,7 @@ namespace XRL.World.Parts
         }
         public override bool HandleEvent(EquippedEvent E)
         {
-            foreach ((Func<bool> check, int eventID) in  EquipperJostleEventIDs)
+            foreach ((Func<bool> check, int eventID) in EquipperJostleEventIDs)
             {
                 if (check.Invoke()) E.Actor.RegisterEvent(this, eventID);
             }
@@ -828,14 +842,14 @@ namespace XRL.World.Parts
         }
         public override bool HandleEvent(EnteredCellEvent E)
         {
-            if (E.Object == ParentObject && CanAddActivity(FromEvent: E))
+            if (E.Actor == Equipper && CanAddActivity(FromEvent: E))
             {
                 int activity = isArmor ? PASSIVE : PASSIVE_VERY;
 
                 Debug.Entry(4,
                     $"{nameof(Mod_UD_Ductape)}." +
                     $"{nameof(HandleEvent)}(" +
-                    $"{nameof(ObjectEnteredCellEvent)} E) " +
+                    $"{nameof(EnteredCellEvent)} E) " +
                     $"{ParentObject?.BaseDisplayName} " +
                     $"{activity}",
                     Indent: 0, Toggle: doDebug);
@@ -844,10 +858,32 @@ namespace XRL.World.Parts
             }
             return base.HandleEvent(E);
         }
+        public override bool HandleEvent(ObjectEnteredCellEvent E)
+        {
+            if (E.Object == ParentObject && Equipper == null && CanAddActivity(FromEvent: E))
+            {
+                Debug.Entry(4,
+                    $"{nameof(Mod_UD_Ductape)}." +
+                    $"{nameof(HandleEvent)}(" +
+                    $"{nameof(ObjectEnteredCellEvent)} E) " +
+                    $"{ParentObject?.BaseDisplayName} " +
+                    $"{PASSIVE_EXTREMELY}",
+                    Indent: 0, Toggle: doDebug);
+
+                AddActivity(PASSIVE_EXTREMELY, FromEvent: E);
+            }
+            return base.HandleEvent(E);
+        }
         public override bool HandleEvent(GetDefenderHitDiceEvent E)
         {
             if (E.Defender == Equipper && CanAddActivity(FromEvent: E))
             {
+                int activity = ACTIVE_VERY;
+                if (ParentObject.TryGetPart(out Armor armor) && armor.WornOn.Contains("Body"))
+                {
+                    activity = ACTIVE_EXTREMELY;
+                }
+
                 Debug.Entry(4,
                     $"{nameof(Mod_UD_Ductape)}." +
                     $"{nameof(HandleEvent)}(" +
@@ -856,7 +892,7 @@ namespace XRL.World.Parts
                     $"{ACTIVE_VERY}",
                     Indent: 0, Toggle: doDebug);
 
-                AddActivity(ACTIVE_VERY, FromEvent: E);
+                AddActivity(activity, FromEvent: E);
             }
             return base.HandleEvent(E);
         }
