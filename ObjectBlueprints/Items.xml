@@ -7,7 +7,7 @@
     <part Name="RulesDescription" Text="Applies the {{y|held together by}} {{utilitape|utilitape}} modification to applicable items." />
     <part Name="Commerce" Value="45" />
     <part Name="Applicator" />
-    <part Name="UtilitapeApplicator" />
+    <part Name="UD_UtilitapeApplicator" />
     <part Name="ItemElements" Elements="scholarship::1" />
     <removepart Name="Metal" />
     <removepart Name="Examiner" />

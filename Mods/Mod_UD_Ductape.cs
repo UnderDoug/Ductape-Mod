@@ -2,17 +2,19 @@
 using System.Collections.Generic;
 using System.Text;
 
-using XRL.UI;
-using XRL.Rules;
 using XRL.Language;
+using XRL.Rules;
+using XRL.UI;
+using XRL.Wish;
 using XRL.World;
 using XRL.World.Capabilities;
 using XRL.World.Tinkering;
-using XRL.Wish;
 
 using UD_Ductape_Mod;
-using static UD_Ductape_Mod.Const;
 
+using static UD_Ductape_Mod.Const;
+using static UD_Ductape_Mod.Options;
+using static UD_Ductape_Mod.Utils;
 using Debug = UD_Ductape_Mod.Debug;
 using Options = UD_Ductape_Mod.Options;
 
@@ -24,7 +26,27 @@ namespace XRL.World.Parts
     [Serializable]
     public class Mod_UD_Ductape : IModification, IModEventHandler<UD_JostleObjectEvent>
     {
-        private static bool doDebug = true;
+        private static bool doDebug => getClassDoDebug(nameof(Mod_UD_Ductape));
+        private static bool getDoDebug(object what = null)
+        {
+            List<object> doList = new()
+            {
+                'V',    // Vomit
+                'X',    // Trace
+                "TT",   // TurnTick
+            };
+            List<object> dontList = new()
+            {
+            };
+
+            if (what != null && doList.Contains(what))
+                return true;
+
+            if (what != null && dontList.Contains(what))
+                return false;
+
+            return doDebug;
+        }
 
         private static bool DebugDuctapeModDescriptions => Options.DebugDuctapeModDescriptions;
         private static bool AnyNumberOfMods => Options.AnyNumberOfMods;
@@ -66,7 +88,7 @@ namespace XRL.World.Parts
         private int TimesJostled = 0;
 
         private float AverageActivity => (float)TotalActivity / (float)TimesActive;
-        private float ActivityPerTurn => (float)TotalActivity / (float)TimesJostled;
+        private float ActivityPerJostle => (float)TotalActivity / (float)TimesJostled;
 
         public int CumulativeJostledDamage = 0;
         public int LastJostledDamage = 0;
@@ -122,29 +144,45 @@ namespace XRL.World.Parts
 
         public static bool CanTape(GameObject Object, string Context = "")
         {
-            if (Context == "Internal" && Object != null)
-            {
-                Debug.Entry(4,
-                    $"{nameof(Mod_UD_Ductape)}." +
-                    $"{nameof(CanTape)}(" +
-                    $"{Object.ShortDisplayNameStripped})",
-                    Indent: Debug.LastIndent + 1, Toggle: doDebug);
-            }
+            int indent = Debug.LastIndent;
+            bool doDebug = Context == "Internal" && getDoDebug();
+
+            Debug.Entry(2,
+                $"{nameof(Mod_UD_Ductape)}." +
+                $"{nameof(CanTape)}(" +
+                $"{Object?.DebugName ?? NULL})",
+                Indent: indent + 1, Toggle: doDebug);
+
             if (Object == null)
             {
+                Debug.CheckNah(3, $"{nameof(Object)} null", Indent: indent + 2, Toggle: doDebug);
+                Debug.LastIndent = indent;
+                return false;
+            }
+            if (!Object.Understood())
+            {
+                Debug.CheckNah(3, $"{nameof(Object)} not understood", Indent: indent + 2, Toggle: doDebug);
+                Debug.LastIndent = indent;
                 return false;
             }
 
             if (!Object.HasStat("Hitpoints"))
             {
+                Debug.CheckNah(3, $"{nameof(Object)} lacks Hitpoints", Indent: indent + 2, Toggle: doDebug);
+                Debug.LastIndent = indent;
                 return false;
             }
 
             if (!AnyNumberOfMods && Object.GetModificationSlotsUsed() != RuleSettings.MAXIMUM_ITEM_MODS)
             {
+                Debug.CheckNah(3, $"{nameof(Object)} doesn't have otherwise max mods or {nameof(AnyNumberOfMods)} set to disabled",
+                    Indent: indent + 2, Toggle: doDebug);
+                Debug.LastIndent = indent;
                 return false;
             }
 
+            Debug.Entry(3, $"Checking whether {nameof(Object)} has any relevant parts...", Indent: indent + 2, Toggle: doDebug);
+            Debug.LastIndent = indent;
             return Object.UsesCharge()
                 || Object.HasPart<MeleeWeapon>()
                 || Object.HasPart<MissileWeapon>()
@@ -197,7 +235,7 @@ namespace XRL.World.Parts
                 $"* {nameof(Jostle)}(" 
                 + $"Item: {Item?.DebugName ?? NULL}, " 
                 + $"Activity: {Activity})",
-                Indent: indent, Toggle: doDebug);
+                Indent: indent, Toggle: getDoDebug());
 
             JostledDamage = 0;
             if (UD_JostleObjectEvent.CheckFor(Item, Activity))
@@ -213,7 +251,7 @@ namespace XRL.World.Parts
                         $"({activityString} in {CHANCE_IN})" +
                         $" {Item?.DebugName ?? NULL} took" +
                         $" {JostledDamage} damage from being knocked around!",
-                        Indent: indent + 1, Toggle: doDebug);
+                        Indent: indent + 1, Toggle: getDoDebug());
 
                     Debug.LastIndent = indent;
                     return Item.TakeDamage(
@@ -233,10 +271,10 @@ namespace XRL.World.Parts
                 else
                 {
                     Debug.Entry(4, 
-                        $"({activityString} in {10000})" +
+                        $"({activityString} in {CHANCE_IN})" +
                         $" {Item?.DebugName ?? NULL}" +
-                        $" was Jostled! ", 
-                        Indent: indent + 1, Toggle: doDebug);
+                        $" was Jostled!", 
+                        Indent: indent + 1, Toggle: getDoDebug());
                 }
             }
             Debug.LastIndent = indent;
@@ -359,10 +397,10 @@ namespace XRL.World.Parts
             { "CommandFireMissile", ACTIVE_VERY },
             { "BeforeThrown", ACTIVE_EXTREMELY },
         };
-        private Dictionary<Func<bool>, int> EquipperJostleEventIDs => new()
+        private Dictionary<Func<bool>, (string, int)> EquipperJostleEventIDs => new()
         {
-            { delegate(){ return isProperlyEquipped; }, EnteredCellEvent.ID },
-            { delegate(){ return isArmor && isProperlyEquipped; }, GetDefenderHitDiceEvent.ID },
+            { delegate(){ return isProperlyEquipped; }, (nameof(EnteredCellEvent), EnteredCellEvent.ID) },
+            { delegate(){ return isArmor && isProperlyEquipped; }, (nameof(GetDefenderHitDiceEvent), GetDefenderHitDiceEvent.ID) },
         };
         public override void Register(GameObject Object, IEventRegistrar Registrar)
         {
@@ -413,10 +451,19 @@ namespace XRL.World.Parts
         }
         public override bool HandleEvent(EndTurnEvent E)
         {
+
             if (Holder != null && Holder.CurrentZone == The.ActiveZone
                 && Activity > 0 && ++StoredTurns > TurnsBetweenJostle
                 && Hitpoints.Value > 0 && !ParentObject.IsInGraveyard())
             {
+                Debug.Entry(4,
+                    $"@ {nameof(Mod_UD_Ductape)}."
+                    + $"{nameof(HandleEvent)}("
+                    + $"{nameof(EndTurnEvent)} E) "
+                    + $"{ParentObject?.BaseDisplayName}, "
+                    + $"Activity: {Activity}",
+                    Indent: 0, Toggle: getDoDebug());
+
                 Jostle(Activity);
                 ResetActivity();
                 StoredTurns = 0;
@@ -563,10 +610,10 @@ namespace XRL.World.Parts
                 SB.Append(VANDR).Append("(").AppendColored("M", $"{AverageActivity}")
                     .Append($"){HONLY}{nameof(AverageActivity)}");
                 SB.AppendLine();
-                SB.Append(VANDR).Append("(").AppendColored("M", $"{ActivityPerTurn}")
-                    .Append($"){HONLY}{nameof(ActivityPerTurn)}");
+                SB.Append(VANDR).Append("(").AppendColored("M", $"{ActivityPerJostle}")
+                    .Append($"){HONLY}{nameof(ActivityPerJostle)}");
                 SB.AppendLine();
-                SB.Append(VANDR).Append("(").AppendColored("M", $"{10000 / ActivityPerTurn}")
+                SB.Append(VANDR).Append("(").AppendColored("M", $"{CHANCE_IN / ActivityPerJostle}")
                     .Append($"){HONLY}OneIn");
                 SB.AppendLine();
                 SB.Append(VONLY).Append(VANDR).Append("(").AppendColored("m", $"{TotalActivity}")
@@ -644,7 +691,7 @@ namespace XRL.World.Parts
         }
         public override bool HandleEvent(GetDebugInternalsEvent E)
         {
-            int oneIn = (int)(10000 / ActivityPerTurn);
+            int oneIn = (int)(CHANCE_IN / ActivityPerJostle);
 
             LastJostleSources ??= new();
             string lastJostleSources = "";
@@ -676,9 +723,7 @@ namespace XRL.World.Parts
 
             string equipmentFrame = ParentObject.GetPropertyOrTag("EquipmentFrameColors") ?? "none";
 
-            long currentGameTicks = The.Game.TimeTicks;
-            long ticksDifference = (int)(The.Game.TimeTicks - StoredTurns);
-
+            E.AddEntry(this, $"{nameof(ScalingDamageChance)}", $"{ScalingDamageChance}");
             E.AddEntry(this, $"{nameof(AnyNumberOfMods)}", $"{AnyNumberOfMods}");
             E.AddEntry(this, $"{nameof(ScalingDamageChance)}", $"{ScalingDamageChance}");
             E.AddEntry(this, $"{nameof(Activity)}", $"{Activity}");
@@ -692,7 +737,7 @@ namespace XRL.World.Parts
             E.AddEntry(this, $"{nameof(PASSIVE_VERY)}", $"{AdjustActivity(PASSIVE_VERY)}/{PASSIVE_VERY}");
             E.AddEntry(this, $"{nameof(PASSIVE_EXTREMELY)}", $"{AdjustActivity(PASSIVE_EXTREMELY)}/{PASSIVE_EXTREMELY}");
             E.AddEntry(this, $"{nameof(AverageActivity)}", $"{AverageActivity}");
-            E.AddEntry(this, $"{nameof(ActivityPerTurn)}", $"{ActivityPerTurn}");
+            E.AddEntry(this, $"{nameof(ActivityPerJostle)}", $"{ActivityPerJostle}");
             E.AddEntry(this, $"{nameof(oneIn)}", $"{oneIn}");
             E.AddEntry(this, $"{nameof(TotalActivity)}", $"{TotalActivity}");
             E.AddEntry(this, $"{nameof(TimesActive)}", $"{TimesActive}");
@@ -703,9 +748,7 @@ namespace XRL.World.Parts
             E.AddEntry(this, $"{nameof(allJostleSources)}", $"{allJostleSources.Quote()}");
             E.AddEntry(this, $"{nameof(equipmentFrame)}", $"{equipmentFrame.Quote()}");
             E.AddEntry(this, $"{nameof(TurnsBetweenJostle)}", $"{TurnsBetweenJostle}");
-            E.AddEntry(this, $"{nameof(currentGameTicks)}", $"{currentGameTicks}");
             E.AddEntry(this, $"{nameof(StoredTurns)}", $"{StoredTurns}");
-            E.AddEntry(this, $"{nameof(ticksDifference)}", $"{ticksDifference}");
             E.AddEntry(this, $"{nameof(isMeleeWeapon)}", $"{isMeleeWeapon}");
             E.AddEntry(this, $"{nameof(isMissileWeapon)}", $"{isMissileWeapon}"); 
             E.AddEntry(this, $"{nameof(isThrownWeapon)}", $"{isThrownWeapon}"); 
@@ -723,16 +766,35 @@ namespace XRL.World.Parts
         }
         public override bool HandleEvent(EquippedEvent E)
         {
-            foreach ((Func<bool> check, int eventID) in EquipperJostleEventIDs)
+            Debug.Entry(3,
+                $"@ {nameof(Mod_UD_Ductape)}."
+                + $"{nameof(HandleEvent)}("
+                + $"{nameof(EquippedEvent)} E) "
+                + $"{ParentObject?.BaseDisplayName}",
+                Indent: 0, Toggle: getDoDebug());
+
+            foreach ((Func<bool> check, (string eventName,int eventID)) in EquipperJostleEventIDs)
             {
-                if (check.Invoke()) E.Actor.RegisterEvent(this, eventID);
+                Debug.LoopItem(4, $"{eventName}", Good: check.Invoke(), Indent: 1, Toggle: getDoDebug());
+                if (check.Invoke())
+                {
+                    E.Actor.RegisterEvent(this, eventID);
+                }
             }
             return base.HandleEvent(E);
         }
         public override bool HandleEvent(UnequippedEvent E)
         {
-            foreach ((Func<bool> _, int eventID) in EquipperJostleEventIDs)
+            Debug.Entry(3,
+                $"@ {nameof(Mod_UD_Ductape)}."
+                + $"{nameof(HandleEvent)}("
+                + $"{nameof(EquippedEvent)} E) "
+                + $"{ParentObject?.BaseDisplayName}",
+                Indent: 0, Toggle: getDoDebug());
+
+            foreach ((Func<bool> _, (string eventName, int eventID)) in EquipperJostleEventIDs)
             {
+                Debug.CheckYeh(4, $"{eventName}", Indent: 1, Toggle: getDoDebug());
                 E.Actor.UnregisterEvent(this, eventID);
             }
             return base.HandleEvent(E);
@@ -748,13 +810,13 @@ namespace XRL.World.Parts
             {
                 int activity = hasEquipper ? PASSIVE_VERY : PASSIVE_EXTREMELY;
 
-                Debug.Entry(4,
-                    $"{nameof(Mod_UD_Ductape)}." +
-                    $"{nameof(HandleEvent)}(" +
-                    $"{nameof(ChargeUsedEvent)} E) " +
-                    $"{ParentObject?.BaseDisplayName} " +
-                    $"{activity}",
-                    Indent: 0, Toggle: doDebug);
+                Debug.Entry(3,
+                    $"@ {nameof(Mod_UD_Ductape)}."
+                    + $"{nameof(HandleEvent)}("
+                    + $"{nameof(ChargeUsedEvent)} E) "
+                    + $"{ParentObject?.BaseDisplayName}, "
+                    + $"Activity: {activity}",
+                    Indent: 0, Toggle: getDoDebug());
 
                 AddActivity(activity, FromEvent: E);
             }
@@ -764,13 +826,13 @@ namespace XRL.World.Parts
         {
             if (E.Source == ParentObject && isPowering && CanAddActivity(FromEvent: E)) // Energy Cells
             {
-                Debug.Entry(4,
-                    $"{nameof(Mod_UD_Ductape)}." +
-                    $"{nameof(HandleEvent)}(" +
-                    $"{nameof(UseChargeEvent)} E) " +
-                    $"{ParentObject?.BaseDisplayName} " +
-                    $"{PASSIVE_VERY}",
-                    Indent: 0, Toggle: doDebug);
+                Debug.Entry(3,
+                    $"@ {nameof(Mod_UD_Ductape)}."
+                    + $"{nameof(HandleEvent)}("
+                    + $"{nameof(UseChargeEvent)} E) "
+                    + $"{E.Source?.BaseDisplayName}, "
+                    + $"Activity: {PASSIVE_VERY}",
+                    Indent: 0, Toggle: getDoDebug());
 
                 AddActivity(PASSIVE_VERY, FromEvent: E);
             }
@@ -780,13 +842,13 @@ namespace XRL.World.Parts
         {
             if(E.Weapon == ParentObject && CanAddActivity(FromEvent: E))
             {
-                Debug.Entry(4,
-                    $"{nameof(Mod_UD_Ductape)}." +
-                    $"{nameof(HandleEvent)}(" +
-                    $"{nameof(GetWeaponHitDiceEvent)} E) " +
-                    $"{ParentObject?.BaseDisplayName} " +
-                    $"{ACTIVE}",
-                    Indent: 0, Toggle: doDebug);
+                Debug.Entry(3,
+                    $"@ {nameof(Mod_UD_Ductape)}."
+                    + $"{nameof(HandleEvent)}("
+                    + $"{nameof(GetWeaponHitDiceEvent)} E) "
+                    + $"{E.Weapon?.BaseDisplayName}, "
+                    + $"Activity: {ACTIVE}",
+                    Indent: 0, Toggle: getDoDebug());
 
                 AddActivity(ACTIVE, FromEvent: E);
             }
@@ -794,15 +856,15 @@ namespace XRL.World.Parts
         }
         public override bool HandleEvent(BeforeFireMissileWeaponsEvent E)
         {
-            if (isMissileWeapon && CanAddActivity(FromEvent: E))
+            if (E.Actor == Equipper && isMissileWeapon && CanAddActivity(FromEvent: E))
             {
-                Debug.Entry(4,
-                    $"{nameof(Mod_UD_Ductape)}." +
-                    $"{nameof(HandleEvent)}(" +
-                    $"{nameof(BeforeFireMissileWeaponsEvent)} E) " +
-                    $"{ParentObject?.BaseDisplayName} " +
-                    $"{ACTIVE_VERY}",
-                    Indent: 0, Toggle: doDebug);
+                Debug.Entry(3,
+                    $"@ {nameof(Mod_UD_Ductape)}."
+                    + $"{nameof(HandleEvent)}("
+                    + $"{nameof(BeforeFireMissileWeaponsEvent)} E) "
+                    + $"{ParentObject?.BaseDisplayName}, "
+                    + $"Activity: {ACTIVE_VERY}",
+                    Indent: 0, Toggle: getDoDebug());
 
                 AddActivity(ACTIVE_VERY, FromEvent: E);
             }
@@ -810,31 +872,33 @@ namespace XRL.World.Parts
         }
         public override bool HandleEvent(GetThrownWeaponFlexPhaseProviderEvent E)
         {
-            if (isThrownWeapon && CanAddActivity(FromEvent: E))
+            if (E.Actor == Equipper && isThrownWeapon && CanAddActivity(FromEvent: E))
             {
-                Debug.Entry(4,
-                    $"{nameof(Mod_UD_Ductape)}." +
-                    $"{nameof(HandleEvent)}(" +
-                    $"{nameof(GetThrownWeaponFlexPhaseProviderEvent)} E) " +
-                    $" {ParentObject?.BaseDisplayName}" +
-                    $"{ACTIVE_VERY}",
-                    Indent: 0, Toggle: doDebug);
+                bool isImprovised = !ParentObject.TryGetPart(out ThrownWeapon thrownWeapon) || thrownWeapon.IsImprovised();
+                int activity = isImprovised ? ACTIVE_EXTREMELY : ACTIVE_VERY;
+                Debug.Entry(3,
+                    $"@ {nameof(Mod_UD_Ductape)}."
+                    + $"{nameof(HandleEvent)}("
+                    + $"{nameof(GetThrownWeaponFlexPhaseProviderEvent)} E) "
+                    + $"{ParentObject?.BaseDisplayName}, "
+                    + $"Activity: {activity}",
+                    Indent: 0, Toggle: getDoDebug());
 
-                AddActivity(ACTIVE_VERY, FromEvent: E);
+                AddActivity(activity, FromEvent: E);
             }
             return base.HandleEvent(E);
         }
         public override bool HandleEvent(AfterShieldBlockEvent E)
         {
-            if (isShield && CanAddActivity(FromEvent: E))
+            if (E.Shield == ParentObject && isShield && CanAddActivity(FromEvent: E))
             {
-                Debug.Entry(4,
-                    $"{nameof(Mod_UD_Ductape)}." +
-                    $"{nameof(HandleEvent)}(" +
-                    $"{nameof(AfterShieldBlockEvent)} E) " +
-                    $"{ParentObject?.BaseDisplayName} " +
-                    $"{ACTIVE}",
-                    Indent: 0, Toggle: doDebug);
+                Debug.Entry(3,
+                    $"@ {nameof(Mod_UD_Ductape)}."
+                    + $"{nameof(HandleEvent)}("
+                    + $"{nameof(AfterShieldBlockEvent)} E) "
+                    + $"{E.Shield?.BaseDisplayName}, "
+                    + $"Activity: {ACTIVE}",
+                    Indent: 0, Toggle: getDoDebug());
 
                 AddActivity(ACTIVE, FromEvent: E);
             }
@@ -846,13 +910,13 @@ namespace XRL.World.Parts
             {
                 int activity = isArmor ? PASSIVE : PASSIVE_VERY;
 
-                Debug.Entry(4,
-                    $"{nameof(Mod_UD_Ductape)}." +
-                    $"{nameof(HandleEvent)}(" +
-                    $"{nameof(EnteredCellEvent)} E) " +
-                    $"{ParentObject?.BaseDisplayName} " +
-                    $"{activity}",
-                    Indent: 0, Toggle: doDebug);
+                Debug.Entry(3,
+                    $"@ {nameof(Mod_UD_Ductape)}."
+                    + $"{nameof(HandleEvent)}("
+                    + $"{nameof(EnteredCellEvent)} E) "
+                    + $"{ParentObject?.BaseDisplayName}, "
+                    + $"Activity: {activity}",
+                    Indent: 0, Toggle: getDoDebug());
 
                 AddActivity(activity, FromEvent: E);
             }
@@ -862,13 +926,13 @@ namespace XRL.World.Parts
         {
             if (E.Object == ParentObject && Equipper == null && CanAddActivity(FromEvent: E))
             {
-                Debug.Entry(4,
-                    $"{nameof(Mod_UD_Ductape)}." +
-                    $"{nameof(HandleEvent)}(" +
-                    $"{nameof(ObjectEnteredCellEvent)} E) " +
-                    $"{ParentObject?.BaseDisplayName} " +
-                    $"{PASSIVE_EXTREMELY}",
-                    Indent: 0, Toggle: doDebug);
+                Debug.Entry(3,
+                    $"@ {nameof(Mod_UD_Ductape)}."
+                    + $"{nameof(HandleEvent)}("
+                    + $"{nameof(ObjectEnteredCellEvent)} E) "
+                    + $"{E.Object?.BaseDisplayName}, "
+                    + $"Activity: {PASSIVE_EXTREMELY}",
+                    Indent: 0, Toggle: getDoDebug());
 
                 AddActivity(PASSIVE_EXTREMELY, FromEvent: E);
             }
@@ -878,19 +942,16 @@ namespace XRL.World.Parts
         {
             if (E.Defender == Equipper && CanAddActivity(FromEvent: E))
             {
-                int activity = ACTIVE_VERY;
-                if (ParentObject.TryGetPart(out Armor armor) && armor.WornOn.Contains("Body"))
-                {
-                    activity = ACTIVE_EXTREMELY;
-                }
+                bool isBodyEquipment = ParentObject.TryGetPart(out Armor armor) && armor.WornOn.Contains("Body");
+                int activity = isBodyEquipment ? ACTIVE_EXTREMELY : ACTIVE_VERY;
 
-                Debug.Entry(4,
-                    $"{nameof(Mod_UD_Ductape)}." +
-                    $"{nameof(HandleEvent)}(" +
-                    $"{nameof(GetDefenderHitDiceEvent)} E) " +
-                    $"{ParentObject?.BaseDisplayName} " +
-                    $"{ACTIVE_VERY}",
-                    Indent: 0, Toggle: doDebug);
+                Debug.Entry(3,
+                    $"@ {nameof(Mod_UD_Ductape)}."
+                    + $"{nameof(HandleEvent)}("
+                    + $"{nameof(GetDefenderHitDiceEvent)} E) "
+                    + $"{ParentObject?.BaseDisplayName}, "
+                    + $"Activity: {activity}",
+                    Indent: 0, Toggle: getDoDebug());
 
                 AddActivity(activity, FromEvent: E);
             }
@@ -901,6 +962,15 @@ namespace XRL.World.Parts
             if (StringyJostleEventIDs.ContainsKey(E.ID) && CanAddActivity(FromSEvent: E))
             {
                 int activity = StringyJostleEventIDs[E.ID];
+
+                Debug.Entry(3,
+                    $"@ {nameof(Mod_UD_Ductape)}."
+                    + $"{nameof(FireEvent)}("
+                    + $"{nameof(Event)} E.{nameof(E.ID)}: {E.ID}) "
+                    + $"{ParentObject?.BaseDisplayName}, "
+                    + $"Activity: {activity}",
+                    Indent: 0, Toggle: getDoDebug());
+
                 AddActivity(activity, FromSEvent: E);
             }
             return base.FireEvent(E);
@@ -915,84 +985,132 @@ namespace XRL.World.Parts
         public static void UtilitapeTestKitWishHandler()
         {
             GameObject player = The.Player;
-            
+
+            GameObject item = null;
             for (int i = 0; i < 50; i++)
             {
-                GameObject fixitSpray = GameObjectFactory.Factory.CreateObject("Fixit Spray", BonusModChance: -9999, Context: "Wish");
-                fixitSpray.MakeUnderstood();
-                player.ReceiveObject(fixitSpray);
+                item = GameObjectFactory.Factory.CreateObject("Fixit Spray", BonusModChance: -9999, Context: "Wish");
+                item.MakeUnderstood();
+                player.ReceiveObject(item);
 
-                GameObject utilitape = GameObjectFactory.Factory.CreateObject("Utilitape", BonusModChance: -9999, Context: "Wish");
-                utilitape.MakeUnderstood();
-                player.ReceiveObject(utilitape);
+                item = GameObjectFactory.Factory.CreateObject("Utilitape", BonusModChance: -9999, Context: "Wish");
+                item.MakeUnderstood();
+                player.ReceiveObject(item);
 
-                if (i < 10)
+                if (i < 15)
                 {
-                    GameObject antimatterCell = GameObjectFactory.Factory.CreateObject("Antimatter Cell", BonusModChance: -9999, Context: "Wish");
-                    antimatterCell.ApplyModification("ModRadioPowered", Actor: player);
-                    antimatterCell.ApplyModification("ModHighCapacity", Actor: player);
-                    if(!antimatterCell.ApplyModification("Mod_UD_RegenNanobots", Actor: player))
+                    item = GameObjectFactory.Factory.CreateObject("Antimatter Cell", BonusModChance: -9999, Context: "Wish");
+                    item.ApplyModification("ModRadioPowered", Actor: player);
+                    item.ApplyModification("ModHighCapacity", Actor: player);
+                    if (i < 10)
                     {
-                        antimatterCell.ApplyModification("ModMetered", Actor: player);
+                        if (!item.ApplyModification("Mod_UD_RegenNanobots", Actor: player))
+                        {
+                            item.ApplyModification("ModMetered", Actor: player);
+                        }
                     }
-                    antimatterCell.ApplyModification("ModGigantic", Actor: player);
-                    antimatterCell.MakeUnderstood();
-                    player.ReceiveObject(antimatterCell);
+                    item.ApplyModification("ModGigantic", Actor: player);
+                    item.MakeUnderstood();
+                    player.ReceiveObject(item);
                 }
             }
-            GameObject visage = GameObjectFactory.Factory.CreateObject("VISAGE", BonusModChance: -9999, Context: "Wish");
-            visage.ApplyModification("ModNav", Actor: player);
-            visage.ApplyModification("ModPolarized", Actor: player);
-            visage.ApplyModification("Mod_UD_RegenNanobots", Actor: player);
-            visage.MakeUnderstood();
-            player.ReceiveObject(visage);
+            item = GameObjectFactory.Factory.CreateObject("VISAGE", BonusModChance: -9999, Context: "Wish");
+            item.ApplyModification("ModNav", Actor: player);
+            item.ApplyModification("ModPolarized", Actor: player);
+            if (!item.ApplyModification("Mod_UD_RegenNanobots", Actor: player))
+            {
+                item.ApplyModification("ModWillowy", Actor: player);
+            }
+            item.MakeUnderstood();
+            player.ReceiveObject(item);
 
-            GameObject zetachromeDagger = GameObjectFactory.Factory.CreateObject("Dagger8", BonusModChance: -9999, Context: "Wish");
-            zetachromeDagger.ApplyModification("ModCounterweighted", Actor: player);
-            zetachromeDagger.ApplyModification("ModSharp", Actor: player);
-            zetachromeDagger.ApplyModification("Mod_UD_RegenNanobots", Actor: player);
-            zetachromeDagger.ApplyModification("Mod_UD_Ductape", Actor: player);
-            zetachromeDagger.ApplyModification("ModFlaming", Actor: player);
-            zetachromeDagger.MakeUnderstood();
-            player.ReceiveObject(zetachromeDagger);
+            item = GameObjectFactory.Factory.CreateObject("Dagger8", BonusModChance: -9999, Context: "Wish");
+            item.ApplyModification("ModCounterweighted", Actor: player);
+            item.ApplyModification("ModSharp", Actor: player);
+            if (!item.ApplyModification("Mod_UD_RegenNanobots", Actor: player))
+            {
+                item.ApplyModification("ModWillowy", Actor: player);
+            }
+            item.ApplyModification("Mod_UD_Ductape", Actor: player);
+            item.ApplyModification("ModFlaming", Actor: player);
+            item.MakeUnderstood();
+            player.ReceiveObject(item);
 
-            GameObject phaseCannon = GameObjectFactory.Factory.CreateObject("Phase Cannon", BonusModChance: -9999, Context: "Wish");
-            phaseCannon.ApplyModification("ModScoped", Actor: player);
-            phaseCannon.ApplyModification("ModNanon", Actor: player);
-            phaseCannon.ApplyModification("Mod_UD_RegenNanobots", Actor: player);
-            phaseCannon.ApplyModification("Mod_UD_Ductape", Actor: player);
-            phaseCannon.ApplyModification("ModWillowy", Actor: player);
-            phaseCannon.MakeUnderstood();
-            player.ReceiveObject(phaseCannon);
+            for (int i = 0; i < 2; i++)
+            {
+                item = GameObjectFactory.Factory.CreateObject("Dagger8", BonusModChance: -9999, Context: "Wish");
+                item.ApplyModification("ModCounterweighted", Actor: player);
+                item.ApplyModification("ModSharp", Actor: player);
+                if (!item.ApplyModification("Mod_UD_RegenNanobots", Actor: player))
+                {
+                    item.ApplyModification("ModWillowy", Actor: player);
+                }
+                item.ApplyModification("Mod_UD_Ductape", Actor: player);
+                item.ApplyModification("ModMasterwork", Actor: player);
+                item.MakeUnderstood();
+                player.ReceiveObject(item);
+            }
 
-            GameObject antigravBoots = GameObjectFactory.Factory.CreateObject("Anti-Gravity Boots", BonusModChance: -9999, Context: "Wish");
-            antigravBoots.ApplyModification("ModSpringLoaded", Actor: player);
-            antigravBoots.ApplyModification("ModCleated", Actor: player);
-            antigravBoots.ApplyModification("Mod_UD_RegenNanobots", Actor: player);
-            antigravBoots.ApplyModification("Mod_UD_Ductape", Actor: player);
-            antigravBoots.ApplyModification("ModRefractive", Actor: player);
-            antigravBoots.MakeUnderstood();
-            player.ReceiveObject(antigravBoots);
+            item = GameObjectFactory.Factory.CreateObject("Phase Cannon", BonusModChance: -9999, Context: "Wish");
+            item.ApplyModification("ModScoped", Actor: player);
+            item.ApplyModification("ModNanon", Actor: player);
+            if (!item.ApplyModification("Mod_UD_RegenNanobots", Actor: player))
+            {
+                item.ApplyModification("ModLacquered", Actor: player);
+            }
+            item.ApplyModification("Mod_UD_Ductape", Actor: player);
+            item.ApplyModification("ModWillowy", Actor: player);
+            item.MakeUnderstood();
+            player.ReceiveObject(item);
 
-            GameObject flawlessCrysteelShield = GameObjectFactory.Factory.CreateObject("Flawless Crysteel Shield", BonusModChance: -9999, Context: "Wish");
-            flawlessCrysteelShield.ApplyModification("ModSpiked", Actor: player);
-            flawlessCrysteelShield.ApplyModification("ModWillowy", Actor: player);
-            flawlessCrysteelShield.ApplyModification("Mod_UD_RegenNanobots", Actor: player);
-            flawlessCrysteelShield.ApplyModification("Mod_UD_Ductape", Actor: player);
-            flawlessCrysteelShield.ApplyModification("ModRefractive", Actor: player);
-            flawlessCrysteelShield.MakeUnderstood();
-            player.ReceiveObject(flawlessCrysteelShield);
+            item = GameObjectFactory.Factory.CreateObject("Anti-Gravity Boots", BonusModChance: -9999, Context: "Wish");
+            item.ApplyModification("ModSpringLoaded", Actor: player);
+            item.ApplyModification("ModCleated", Actor: player);
+            if (!item.ApplyModification("Mod_UD_RegenNanobots", Actor: player))
+            {
+                item.ApplyModification("ModWillowy", Actor: player);
+            }
+            item.ApplyModification("Mod_UD_Ductape", Actor: player);
+            item.ApplyModification("ModRefractive", Actor: player);
+            item.MakeUnderstood();
+            player.ReceiveObject(item);
 
-            GameObject transkineticCuffs = GameObjectFactory.Factory.CreateObject("Transkinetic Cuffs", BonusModChance: -9999, Context: "Wish");
-            transkineticCuffs.ApplyModification("ModSturdy", Actor: player);
-            transkineticCuffs.ApplyModification("ModOverloaded", Actor: player);
-            transkineticCuffs.ApplyModification("Mod_UD_RegenNanobots", Actor: player);
-            transkineticCuffs.MakeUnderstood();
-            player.ReceiveObject(transkineticCuffs);
+            item = GameObjectFactory.Factory.CreateObject("Flawless Crysteel Shield", BonusModChance: -9999, Context: "Wish");
+            item.ApplyModification("ModSpiked", Actor: player);
+            item.ApplyModification("ModWillowy", Actor: player);
+            if (!item.ApplyModification("Mod_UD_RegenNanobots", Actor: player))
+            {
+                item.ApplyModification("ModWillowy", Actor: player);
+            }
+            item.ApplyModification("Mod_UD_Ductape", Actor: player);
+            item.ApplyModification("ModRefractive", Actor: player);
+            item.MakeUnderstood();
+            player.ReceiveObject(item);
+
+            item = GameObjectFactory.Factory.CreateObject("Transkinetic Cuffs", BonusModChance: -9999, Context: "Wish");
+            item.ApplyModification("ModSturdy", Actor: player);
+            item.ApplyModification("ModOverloaded", Actor: player);
+            if (!item.ApplyModification("Mod_UD_RegenNanobots", Actor: player))
+            {
+                item.ApplyModification("ModWillowy", Actor: player);
+            }
+            item.MakeUnderstood();
+            player.ReceiveObject(item);
+
+            item = GameObjectFactory.Factory.CreateObject("Transkinetic Cuffs", BonusModChance: -9999, Context: "Wish");
+            item.ApplyModification("ModSturdy", Actor: player);
+            item.ApplyModification("ModWillowy", Actor: player);
+            if (!item.ApplyModification("Mod_UD_RegenNanobots", Actor: player))
+            {
+                item.ApplyModification("ModLacquered", Actor: player);
+            }
+            item.MakeUnderstood();
+            player.ReceiveObject(item);
 
             player.RequirePart<BitLocker>().AddAllBits(6000);
 
             player.RequirePart<Mutations>().AddMutation("MultipleLegs", 10);
+            player.RequirePart<Mutations>().AddMutation("ElectricalGeneration", 10);
 
             Popup.Suppress = true;
             player.AwardXP(750000);
