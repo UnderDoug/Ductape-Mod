@@ -63,6 +63,39 @@
   Mod Options
   -->
   <option
+        ID="Option_UD_Ductape_Mod_EnableJostledPopups"
+        DisplayText="Enable popup messages for when and item is damaged by being {{utilitape|jostled}}."
+        Category="Mod: UD Ductape Mod"
+        Type="Checkbox"
+        Default="Yes" >
+    <helptext>
+      When enabled, items that take damage from &quot;held together by {{utilitape|utilitape}}&quot; jostling them will have this fact announced by a popup, and will interrupt any auto-actions.
+
+      It can be useful information to know when an item has {{r|taken damage}}, however this can get a little spammy when there are several items all being jostled at once during chaotic situations.
+      
+      You'll always be warned if an item being jostled has broken the item, or if taking jostle damage again will destroy it.
+
+      The default is {{W|Enabled}}.
+    </helptext>
+  </option>
+  
+  <option
+        ID="Option_UD_Ductape_Mod_EnableJostledPopupsForImportant"
+        DisplayText="Enable the above disabled popups for items marked &quot;Important&quot;."
+		    Requires="Option_UD_Ductape_Mod_EnableJostledPopups==No"
+        Category="Mod: UD Ductape Mod"
+        Type="Checkbox"
+        Default="Yes" >
+    <helptext>
+      When enabled, you'll get the above disabled popups for items you've marked &quot;Important&quot; but no others.
+      
+      You'll always be warned if an item being jostled has broken the item, or if taking jostle damage again will destroy it.
+
+      The default is {{W|Enabled}}.
+    </helptext>
+  </option>
+  
+  <option
         ID="Option_UD_Ductape_Mod_ActivityMultiplier"
         DisplayText="How much to multiply activity amounts by when &quot;held together by {{utilitape|utilitape}}&quot; jostles an item."
         Category="Mod: UD Ductape Mod"

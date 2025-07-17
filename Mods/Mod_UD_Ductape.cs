@@ -69,8 +69,8 @@ namespace XRL.World.Parts
 
         public static readonly string DeathReason = "jostled apart";
 
-        public static readonly string MOD_NAME = "held together by utilitape";
-        public static readonly string MOD_NAME_COLORED = "held together by {{utilitape|utilitape}}";
+        public const string MOD_NAME = "held together by utilitape";
+        public const string MOD_NAME_COLORED = "held together by {{utilitape|utilitape}}";
 
         public int Activity = 0;
 
@@ -240,10 +240,9 @@ namespace XRL.World.Parts
             JostledDamage = 0;
             if (UD_JostleObjectEvent.CheckFor(Item, Activity))
             {
-                int activity = AdjustActivity(Item, Activity);
                 int activityOneInPadding = CHANCE_IN.ToString().Length;
-                string activityString = activity.ToString().PadLeft(activityOneInPadding, ' ');
-                if (activity.ChanceIn(CHANCE_IN))
+                string activityString = Activity.ToString().PadLeft(activityOneInPadding, ' ');
+                if (Activity.ChanceIn(CHANCE_IN))
                 {
                     JostledDamage = (int)Math.Ceiling(Item.GetStat("Hitpoints").BaseValue * 0.25);
                     
@@ -306,8 +305,11 @@ namespace XRL.World.Parts
                 string damageSource = "from being {{utilitape|jostled}}!";
                 string message = $"=object.T's= {equipped}{ParentObject.BaseDisplayName} took {JostledDamage} damage {damageSource}";
 
+                bool objectIsAtRisk = false;
+
                 if (Hitpoints.Value <= (int)Math.Ceiling(Hitpoints.BaseValue * 0.25) && Hitpoints.Value > 0)
                 {
+                    objectIsAtRisk = true;
                     if (ParentObject.IsBroken())
                     {
                         message += $" {ParentObject.Itis} " + " {{r|busted}}!";
@@ -324,8 +326,11 @@ namespace XRL.World.Parts
                         message += " =pronouns.Subjective==verb:'ve:afterpronoun= been {{utilitape|jostled}} into useless pieces!";
                     }
                 }
-                Popup.Show(GameText.VariableReplace(message, Subject: ParentObject, Object: Holder), LogMessage: false);
-                AutoAct.Interrupt();
+                if (EnableJostledPopups || (ParentObject.IsImportant() && EnableJostledPopupsForImportant) || objectIsAtRisk)
+                {
+                    Popup.Show(GameText.VariableReplace(message, Subject: ParentObject, Object: Holder), LogMessage: false);
+                    AutoAct.Interrupt();
+                }
             }
         }
 
@@ -360,11 +365,11 @@ namespace XRL.World.Parts
         public void AddActivity(int Amount, MinEvent FromEvent = null, Event FromSEvent = null)
         {
             ActivityAdded ??= new();
-            int activity = UD_GetJostleActivityEvent.For(ParentObject, Amount, FromEvent, FromSEvent);
+            int activity = UD_GetJostleActivityEvent.For(ParentObject, AdjustActivity(Amount), FromEvent, FromSEvent);
             if (activity != 0)
             {
-                Activity += Amount;
-                TotalActivity += Amount;
+                Activity += activity;
+                TotalActivity += activity;
                 TimesActive++;
                 if (FromEvent != null)
                 {
@@ -815,7 +820,7 @@ namespace XRL.World.Parts
                     + $"{nameof(HandleEvent)}("
                     + $"{nameof(ChargeUsedEvent)} E) "
                     + $"{ParentObject?.BaseDisplayName}, "
-                    + $"Activity: {activity}",
+                    + $"Activity: {AdjustActivity(activity)}",
                     Indent: 0, Toggle: getDoDebug());
 
                 AddActivity(activity, FromEvent: E);
@@ -831,7 +836,7 @@ namespace XRL.World.Parts
                     + $"{nameof(HandleEvent)}("
                     + $"{nameof(UseChargeEvent)} E) "
                     + $"{E.Source?.BaseDisplayName}, "
-                    + $"Activity: {PASSIVE_VERY}",
+                    + $"Activity: {AdjustActivity(PASSIVE_VERY)}",
                     Indent: 0, Toggle: getDoDebug());
 
                 AddActivity(PASSIVE_VERY, FromEvent: E);
@@ -847,7 +852,7 @@ namespace XRL.World.Parts
                     + $"{nameof(HandleEvent)}("
                     + $"{nameof(GetWeaponHitDiceEvent)} E) "
                     + $"{E.Weapon?.BaseDisplayName}, "
-                    + $"Activity: {ACTIVE}",
+                    + $"Activity: {AdjustActivity(ACTIVE)}",
                     Indent: 0, Toggle: getDoDebug());
 
                 AddActivity(ACTIVE, FromEvent: E);
@@ -863,7 +868,7 @@ namespace XRL.World.Parts
                     + $"{nameof(HandleEvent)}("
                     + $"{nameof(BeforeFireMissileWeaponsEvent)} E) "
                     + $"{ParentObject?.BaseDisplayName}, "
-                    + $"Activity: {ACTIVE_VERY}",
+                    + $"Activity: {AdjustActivity(ACTIVE_VERY)}",
                     Indent: 0, Toggle: getDoDebug());
 
                 AddActivity(ACTIVE_VERY, FromEvent: E);
@@ -881,7 +886,7 @@ namespace XRL.World.Parts
                     + $"{nameof(HandleEvent)}("
                     + $"{nameof(GetThrownWeaponFlexPhaseProviderEvent)} E) "
                     + $"{ParentObject?.BaseDisplayName}, "
-                    + $"Activity: {activity}",
+                    + $"Activity: {AdjustActivity(activity)}",
                     Indent: 0, Toggle: getDoDebug());
 
                 AddActivity(activity, FromEvent: E);
@@ -897,7 +902,7 @@ namespace XRL.World.Parts
                     + $"{nameof(HandleEvent)}("
                     + $"{nameof(AfterShieldBlockEvent)} E) "
                     + $"{E.Shield?.BaseDisplayName}, "
-                    + $"Activity: {ACTIVE}",
+                    + $"Activity: {AdjustActivity(ACTIVE)}",
                     Indent: 0, Toggle: getDoDebug());
 
                 AddActivity(ACTIVE, FromEvent: E);
@@ -915,7 +920,7 @@ namespace XRL.World.Parts
                     + $"{nameof(HandleEvent)}("
                     + $"{nameof(EnteredCellEvent)} E) "
                     + $"{ParentObject?.BaseDisplayName}, "
-                    + $"Activity: {activity}",
+                    + $"Activity: {AdjustActivity(activity)}",
                     Indent: 0, Toggle: getDoDebug());
 
                 AddActivity(activity, FromEvent: E);
@@ -931,7 +936,7 @@ namespace XRL.World.Parts
                     + $"{nameof(HandleEvent)}("
                     + $"{nameof(ObjectEnteredCellEvent)} E) "
                     + $"{E.Object?.BaseDisplayName}, "
-                    + $"Activity: {PASSIVE_EXTREMELY}",
+                    + $"Activity: {AdjustActivity(PASSIVE_EXTREMELY)}",
                     Indent: 0, Toggle: getDoDebug());
 
                 AddActivity(PASSIVE_EXTREMELY, FromEvent: E);
@@ -950,7 +955,7 @@ namespace XRL.World.Parts
                     + $"{nameof(HandleEvent)}("
                     + $"{nameof(GetDefenderHitDiceEvent)} E) "
                     + $"{ParentObject?.BaseDisplayName}, "
-                    + $"Activity: {activity}",
+                    + $"Activity: {AdjustActivity(activity)}",
                     Indent: 0, Toggle: getDoDebug());
 
                 AddActivity(activity, FromEvent: E);
@@ -968,17 +973,12 @@ namespace XRL.World.Parts
                     + $"{nameof(FireEvent)}("
                     + $"{nameof(Event)} E.{nameof(E.ID)}: {E.ID}) "
                     + $"{ParentObject?.BaseDisplayName}, "
-                    + $"Activity: {activity}",
+                    + $"Activity: {AdjustActivity(activity)}",
                     Indent: 0, Toggle: getDoDebug());
 
                 AddActivity(activity, FromSEvent: E);
             }
             return base.FireEvent(E);
-        }
-        
-        public override bool SameAs(IPart p)
-        {
-            return this == p;
         }
 
         [WishCommand(Command = "utilitape test kit")]
@@ -993,7 +993,7 @@ namespace XRL.World.Parts
                 item.MakeUnderstood();
                 player.ReceiveObject(item);
 
-                item = GameObjectFactory.Factory.CreateObject("Utilitape", BonusModChance: -9999, Context: "Wish");
+                item = GameObjectFactory.Factory.CreateObject("UD_Utilitape", BonusModChance: -9999, Context: "Wish");
                 item.MakeUnderstood();
                 player.ReceiveObject(item);
 

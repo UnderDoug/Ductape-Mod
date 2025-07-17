@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <objects>
-  <object Name="Utilitape" Inherits="Tool">
+  <object Name="UD_Utilitape" Inherits="Tool">
     <!-- TileColor is black pixels, DetailColor is white pixels -->
     <part Name="Render" DisplayName="{{utilitape|utilitape}}" Tile="Items/UD_Utilitape.png" TileColor="&amp;y" DetailColor="K" RenderString="012" ColorString="&amp;w" RenderLayer="5" />
     <part Name="Description" Short="A long sheaf of coarse fabric, plastifer-lacquered and layered with quick resin, sits wound about a carboard spool and a promise of endless possibilities." />

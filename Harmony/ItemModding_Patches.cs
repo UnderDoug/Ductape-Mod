@@ -51,18 +51,18 @@ namespace UD_Ductape_Mod.Harmony
         [HarmonyPostfix]
         public static void ModKey_IgnoreMaxMods_Prefix(ref string __result, GameObject Object)
         {
-            string propertyOrTag = Object.GetPropertyOrTag("Mods");
+            string modsKey = Object.GetPropertyOrTag("Mods");
 
             Debug.Entry(4,
                 $"{nameof(ItemModding)}." +
                 $"{nameof(ItemModding.ModKey)}(" +
                 $"Object: {Object?.ShortDisplayNameWithoutTitlesStripped ?? NULL}, " +
-                $"propertyOrTag: {propertyOrTag?.Quote()})",
+                $"propertyOrTag: {modsKey?.Quote()})",
                 Indent: Debug.LastIndent, Toggle: getDoDebug('X'));
 
-            if (!propertyOrTag.IsNullOrEmpty() && propertyOrTag != "None")
+            if (!modsKey.IsNullOrEmpty() && modsKey != "None")
             {
-                __result = propertyOrTag;
+                __result = modsKey;
             }
         }
     }

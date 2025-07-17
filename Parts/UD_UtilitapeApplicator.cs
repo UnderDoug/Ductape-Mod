@@ -126,7 +126,12 @@ namespace XRL.World.Parts
                     E.Item.MakeUnderstood();
                 }
 
-                Debug.Entry(3, $"Attempting to ApplyModification...", Indent: indent + 2, Toggle: getDoDebug());
+                string appliedMessage = pickedGameObject.Does(Verb: "become") + " held together by {{utilitape|utilitape}}.";
+                string consumedMessage = GameText.VariableReplace(
+                        Message: "=object.T= used the entire roll of {{utilitape|=subject.name=}}!",
+                        Subject: E.Item,
+                        Object: E.Actor);
+
                 if (!ItemModding.ApplyModification(Object: pickedGameObject, ModPartName: nameof(Mod_UD_Ductape), Actor: E.Actor))
                 {
                     Debug.CheckNah(4, $"{nameof(pickedGameObject)} couldn't be modified", Indent: indent + 3, Toggle: getDoDebug());
@@ -144,12 +149,6 @@ namespace XRL.World.Parts
                 Debug.Entry(3, $"Playing Sounds...", Indent: indent + 2, Toggle: getDoDebug());
                 E.Actor.PlayWorldOrUISound(APPLIED_SOUND_CLOTH);
                 E.Actor.PlayWorldOrUISound(APPLIED_SOUND_TINKER);
-
-                string appliedMessage = pickedGameObject.Does(Verb: "become") + " held together by {{utilitape|utilitape}}.";
-                string consumedMessage = GameText.VariableReplace(
-                        Message: "=object.T= used the entire roll of {{utilitape|=subject.name=}}!",
-                        Subject: E.Item,
-                        Object: E.Actor);
 
                 Debug.Entry(3, $"Outputting messages...", Indent: indent + 2, Toggle: getDoDebug());
                 Debug.LoopItem(3, $"{nameof(appliedMessage)}", appliedMessage, Indent: indent + 3, Toggle: getDoDebug());

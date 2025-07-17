@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<populations>
+  
+  <population Name="Utility 2" Load="Merge" >
+    <group Name="Items" Load="Merge" >
+      <object Weight="10" Number="1-2" Blueprint="UD_Utilitape" />
+    </group>
+  </population>
+
+  <population Name="Utility 3" Load="Merge" >
+    <group Name="Items" Load="Merge" >
+      <object Weight="10" Number="3-5" Blueprint="UD_Utilitape" />
+    </group>
+  </population>
+
+  <population Name="StartingGear_Tinker" Load="Merge" >
+    <group Name="Items" Load="Merge" >
+      <object Blueprint="UD_Utilitape" Number="1" />
+    </group>
+  </population>
+  
+</populations>

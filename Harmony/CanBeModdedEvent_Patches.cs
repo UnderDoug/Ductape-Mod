@@ -62,8 +62,8 @@ namespace UD_Ductape_Mod.Harmony
 
             if (ModName != null)
             {
-                Type type = ModManager.ResolveType("XRL.World.Parts." + ModName);
-                if (type != null && Activator.CreateInstance(type) is IModification modPart)
+                Type modType = ModManager.ResolveType("XRL.World.Parts." + ModName);
+                if (modType != null && Activator.CreateInstance(modType) is IModification modPart)
                 {
                     __result = __result && (Item.GetModificationSlotsUsed() + modPart.GetModificationSlotUsage()) <= RuleSettings.MAXIMUM_ITEM_MODS;
                 }
