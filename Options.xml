@@ -7,7 +7,7 @@
   
   <option
         ID="Option_UD_Ductape_Mod_DebugVerbosity"
-        DisplayText="{{y|Ductape Mod}}: Verbosity of debug entries output to Player.log"
+        DisplayText="{{utilitape|Ductape}} {{y|Mod}}: Verbosity of debug entries output to Player.log"
         Category="Debug"
         Type="Slider" 
         Default="0"
@@ -28,7 +28,7 @@
   <option
         ID="Option_UD_Ductape_Mod_DebugIncludeInMessage"
 		    Requires="Option_UD_Ductape_Mod_DebugVerbosity!=0"
-        DisplayText="{{y|Ductape Mod}}: Also show debug entries in the Message Queue"
+        DisplayText="{{utilitape|Ductape}} {{y|Mod}}: Also show debug entries in the Message Queue"
         Category="Debug"
         Type="Checkbox"
         Default="No" >
@@ -42,14 +42,14 @@
 	
   <option
         ID="Option_UD_Ductape_Mod_DebugDuctapeModDescriptions"
-        DisplayText="{{y|Ductape Mod}}: Show Ductape Mod internal debug information in relevant ShortDescriptions displayed in the [{{W|l}}]ook UI."
+        DisplayText="{{utilitape|Ductape}} {{y|Mod}}: Show Ductape Mod internal debug information in relevant ShortDescriptions displayed in the [{{W|l}}]ook UI."
         Category="Debug"
         Type="Checkbox"
         Default="No" >
     <helptext>
-      When enabled, internal debug information relating to the &quot;held together by utilitape&quot; modification will be displayed when [{{W|l}}]ooking at anything with the relevant parts.
+      When enabled, internal debug information relating to the &quot;held together by {{utilitape|utilitape}}&quot; modification will be displayed when [{{W|l}}]ooking at anything with the relevant parts.
 
-      {{M|Ductape}}:
+      {{M|Utilitape}}:
       {{W|Options}}: Shows values associated with the options for this modification.
       {{W|State}}: Shows information about the modification's current state.
       {{W|Turns}}: Shows turn-based information about the modification.
