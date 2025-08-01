@@ -504,7 +504,7 @@ namespace XRL.World.Parts
         }
         public override bool HandleEvent(GetShortDescriptionEvent E)
         {
-            E.Postfix.AppendRules(GetDescription());
+            E.Postfix.AppendRules(GetDescription(E.Object));
 
             if (DebugDuctapeModDescriptions)
             {
