@@ -518,7 +518,7 @@ namespace UD_Ductape_Mod
         public static string GetObjectNoun(this GameObject Object)
         {
             if (Object == null)
-                return null;
+                return "object";
 
             if (!Object.Understood())
                 return "artifact";

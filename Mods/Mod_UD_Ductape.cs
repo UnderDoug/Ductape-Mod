@@ -192,7 +192,15 @@ namespace XRL.World.Parts
         }
         public static string GetDescription()
         {
-            return Grammar.InitCap(MOD_NAME_COLORED) + ": this item can be modified one additional time (excluding this modification) but has a small chance whenever it's used to take damage equal to 1/4 of its max hitpoints.";
+            return $"{Grammar.InitCap(MOD_NAME_COLORED)}: this item can be modified one additional time (excluding this modification) but has a small chance whenever it's used to take damage equal to 1/4 of its max hitpoints.";
+        }
+        public static string GetDescription(GameObject Object)
+        {
+            if (Object  == null)
+            {
+                GetDescription();
+            }
+            return $"{Grammar.InitCap(MOD_NAME_COLORED)}: {Object?.IndicativeProximal} {Object.GetObjectNoun()} can be modified one additional time (excluding this modification) but has a small chance whenever it's used to take damage equal to 1/4 of its max hitpoints.";
         }
         public override void ApplyModification()
         {
