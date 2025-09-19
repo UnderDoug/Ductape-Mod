@@ -6,17 +6,17 @@ using XRL.Language;
 using XRL.Rules;
 using XRL.UI;
 using XRL.Wish;
-using XRL.World;
 using XRL.World.Capabilities;
 using XRL.World.Tinkering;
-
-using UD_Ductape_Mod;
 
 using static UD_Ductape_Mod.Const;
 using static UD_Ductape_Mod.Options;
 using static UD_Ductape_Mod.Utils;
+
 using Debug = UD_Ductape_Mod.Debug;
 using Options = UD_Ductape_Mod.Options;
+
+using UD_Ductape_Mod;
 
 using SerializeField = UnityEngine.SerializeField;
 
@@ -49,9 +49,10 @@ namespace XRL.World.Parts
         }
 
         private static bool DebugDuctapeModDescriptions => Options.DebugDuctapeModDescriptions;
+        private static float DamageMaxHPMultiplier => Math.Max(0f, Math.Min(Options.DamageMaxHPMultiplier, 0.5f));
+        private static float ActivityMultiplier => Options.ActivityMultiplier == 0f ? 1f : Options.ActivityMultiplier;
         private static bool AnyNumberOfMods => Options.AnyNumberOfMods;
         private static bool ScalingDamageChance => Options.ScalingDamageChance;
-        private static float ActivityMultiplier => Options.ActivityMultiplier == 0 ? 1f : Options.ActivityMultiplier;
 
         public static int TurnsBetweenJostle = 0;
 
@@ -87,8 +88,8 @@ namespace XRL.World.Parts
         [SerializeField]
         private int TimesJostled = 0;
 
-        private float AverageActivity => (float)TotalActivity / (float)TimesActive;
-        private float ActivityPerJostle => (float)TotalActivity / (float)TimesJostled;
+        private float AverageActivity => (float)Math.Round((float)TotalActivity / (float)TimesActive, 2);
+        private float ActivityPerJostle => (float)Math.Round((float)TotalActivity / (float)TimesJostled, 2);
 
         public int CumulativeJostledDamage = 0;
         public int LastJostledDamage = 0;
@@ -252,7 +253,7 @@ namespace XRL.World.Parts
                 string activityString = Activity.ToString().PadLeft(activityOneInPadding, ' ');
                 if (Activity.ChanceIn(CHANCE_IN))
                 {
-                    JostledDamage = (int)Math.Ceiling(Item.GetStat("Hitpoints").BaseValue * 0.25);
+                    JostledDamage = (int)Math.Ceiling(Item.GetStat("Hitpoints").BaseValue * DamageMaxHPMultiplier);
                     
                     Debug.Entry(4,
                         $"({activityString} in {CHANCE_IN})" +
@@ -261,19 +262,20 @@ namespace XRL.World.Parts
                         Indent: indent + 1, Toggle: getDoDebug());
 
                     Debug.LastIndent = indent;
-                    return Item.TakeDamage(
-                        Amount: JostledDamage,
-                        Message: "from being {{utilitape|jostled}}!",
-                        Attributes: "Disintigrate,Jostle",
-                        DeathReason: $"You were {DeathReason}",
-                        ThirdPersonDeathReason: $"{Item.It + Item.GetVerb("were")} {DeathReason}",
-                        Attacker: Item?.equippedOrSelf(),
-                        Source: Item?.equippedOrSelf(),
-                        Perspective: Item?.equippedOrSelf(),
-                        Accidental: true,
-                        Indirect: true,
-                        ShowForInanimate: true,
-                        SilentIfNoDamage: true);
+                    return DamageMaxHPMultiplier == 0 
+                        || Item.TakeDamage(
+                            Amount: JostledDamage,
+                            Message: "from being {{utilitape|jostled}}!",
+                            Attributes: "Disintigrate,Jostle",
+                            DeathReason: $"You were {DeathReason}",
+                            ThirdPersonDeathReason: $"{Item.It + Item.GetVerb("were")} {DeathReason}",
+                            Attacker: Item?.equippedOrSelf(),
+                            Source: Item?.equippedOrSelf(),
+                            Perspective: Item?.equippedOrSelf(),
+                            Accidental: true,
+                            Indirect: true,
+                            ShowForInanimate: true,
+                            SilentIfNoDamage: true);
                 }
                 else
                 {
@@ -306,7 +308,7 @@ namespace XRL.World.Parts
 
         public void GotJostled(int JostledDamage = 0, MinEvent FromEvent = null, Event FromSEvent = null)
         {
-            if (Holder != null && Holder.IsPlayerControlled() && JostledDamage != 0)
+            if (Holder != null && Holder.IsPlayer() && JostledDamage != 0)
             {
                 bool isEquipped = Equipper != null;
                 string equipped = isEquipped ? "equipped " : "";
@@ -315,7 +317,7 @@ namespace XRL.World.Parts
 
                 bool objectIsAtRisk = false;
 
-                if (Hitpoints.Value <= (int)Math.Ceiling(Hitpoints.BaseValue * 0.25) && Hitpoints.Value > 0)
+                if (Hitpoints.Value <= (int)Math.Ceiling(Hitpoints.BaseValue * DamageMaxHPMultiplier) && Hitpoints.Value > 0)
                 {
                     objectIsAtRisk = true;
                     if (ParentObject.IsBroken())
@@ -569,12 +571,26 @@ namespace XRL.World.Parts
                     _ => "K",
                 };
 
+                string damageMaxHPMultiplierColor = DamageMaxHPMultiplier switch
+                {
+                    0f => "K",
+                    0.125f => "G",
+                    0.2f => "g",
+                    0.25f => "W",
+                    0.333f => "r",
+                    0.5f => "R",
+                    _ => "K",
+                };
+
                 SB.AppendColored("M", nameof(Mod_UD_Ductape)).Append(": ");
                 SB.AppendLine();
 
                 SB.AppendColored("W", $"Options")
                     .AppendLine();
-                SB.Append(VANDR).Append("(").AppendColored("activityMultiplierColor", $"{ActivityMultiplier}")
+                SB.Append(VANDR).Append("(").AppendColored(damageMaxHPMultiplierColor, $"{DamageMaxHPMultiplier}")
+                    .Append($"){HONLY}{nameof(DamageMaxHPMultiplier)}");
+                SB.AppendLine();
+                SB.Append(VANDR).Append("(").AppendColored(activityMultiplierColor, $"{ActivityMultiplier}")
                     .Append($"){HONLY}{nameof(ActivityMultiplier)}");
                 SB.AppendLine();
                 SB.Append(VANDR).Append($"[").Append(AnyNumberOfMods.YehNah()).Append($"]")
@@ -626,7 +642,7 @@ namespace XRL.World.Parts
                 SB.Append(VANDR).Append("(").AppendColored("M", $"{ActivityPerJostle}")
                     .Append($"){HONLY}{nameof(ActivityPerJostle)}");
                 SB.AppendLine();
-                SB.Append(VANDR).Append("(").AppendColored("M", $"{CHANCE_IN / ActivityPerJostle}")
+                SB.Append(VANDR).Append("(").AppendColored("M", $"{Math.Round(CHANCE_IN / ActivityPerJostle, 2)}")
                     .Append($"){HONLY}OneIn");
                 SB.AppendLine();
                 SB.Append(VONLY).Append(VANDR).Append("(").AppendColored("m", $"{TotalActivity}")
@@ -989,7 +1005,7 @@ namespace XRL.World.Parts
             return base.FireEvent(E);
         }
 
-        [WishCommand(Command = "utilitape test kit")]
+        [WishCommand(Command = "utilitest kit")]
         public static void UtilitapeTestKitWishHandler()
         {
             GameObject player = The.Player;

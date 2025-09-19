@@ -45,11 +45,12 @@ namespace UD_Ductape_Mod
         [OptionFlag] public static bool DebugDuctapeModDescriptions;
 
         // Balance Settings
-        [OptionFlag] public static bool EnableJostledPopups;
-        [OptionFlag] public static bool EnableJostledPopupsForImportant;
+        [OptionFlag] public static float DamageMaxHPMultiplier;
         [OptionFlag] public static float ActivityMultiplier;
         [OptionFlag] public static bool AnyNumberOfMods;
         [OptionFlag] public static bool ScalingDamageChance;
+        [OptionFlag] public static bool EnableJostledPopups;
+        [OptionFlag] public static bool EnableJostledPopupsForImportant;
 
     } //!-- public static class Options
 }

@@ -63,40 +63,30 @@
   Mod Options
   -->
   <option
-        ID="Option_UD_Ductape_Mod_EnableJostledPopups"
-        DisplayText="Enable popup messages for when and item is damaged by being {{utilitape|jostled}}."
+        ID="Option_UD_Ductape_Mod_DamageMaxHPMultiplier"
+        DisplayText="What fraction of an item's Max HP &quot;held together by {{utilitape|utilitape}}&quot; an item will take in damage when jostling low-rolls."
         Category="Mod: UD Ductape Mod"
-        Type="Checkbox"
-        Default="Yes" >
+        Type="Combo"
+        Default="0.25" 
+        Values="0|no damage,0.125|1/8,0.2|1/5,0.25|1/4,0.333|1/3,0.5|1/2(hardcore)" >
     <helptext>
-      When enabled, items that take damage from &quot;held together by {{utilitape|utilitape}}&quot; jostling them will have this fact announced by a popup, and will interrupt any auto-actions.
-
-      It can be useful information to know when an item has {{r|taken damage}}, however this can get a little spammy when there are several items all being jostled at once during chaotic situations.
+      1/4 of an item's max HP was picked largely by vibes. The idea was to be punishing but not overly so. Qud can be brutal at times but isn't always the flavour you're after.
       
-      You'll always be warned if an item being jostled has broken the item, or if taking jostle damage again will destroy it.
+      Use this option to customise how much damage an item takes when &quot;held together by {{utilitape|utilitape}}&quot; jostling an item &quot;low-rolls&quot;.
 
-      The default is {{W|Enabled}}.
-    </helptext>
-  </option>
-  
-  <option
-        ID="Option_UD_Ductape_Mod_EnableJostledPopupsForImportant"
-        DisplayText="Enable the above disabled popups for items marked &quot;Important&quot;."
-		    Requires="Option_UD_Ductape_Mod_EnableJostledPopups==No"
-        Category="Mod: UD Ductape Mod"
-        Type="Checkbox"
-        Default="Yes" >
-    <helptext>
-      When enabled, you'll get the above disabled popups for items you've marked &quot;Important&quot; but no others.
-      
-      You'll always be warned if an item being jostled has broken the item, or if taking jostle damage again will destroy it.
+      &quot;no damage&quot; effectively disables the only downside of &quot;held together by {{utilitape|utilitape}}&quot;.
 
-      The default is {{W|Enabled}}.
+      &quot;1/2(hardcore)&quot; gives you effectively one warning to repair an item before it's permanently destroyed. 1/4 HP remaining is the threshold for something to become [{{r|broken}}], which unequips it and greatly reduces the amount of activity it can be involved in. Taking 1/2 max HP functionally skips this "protection".
+
+      The {{r|further right}} this option is set, the {{r|more damage}} an item will take when jostle &quot;low-rolls&quot;.
+
+      The default is {{W|1/4}}.
     </helptext>
   </option>
   
   <option
         ID="Option_UD_Ductape_Mod_ActivityMultiplier"
+        Requires="Option_UD_Ductape_Mod_DamageMaxHPMultiplier!=0"
         DisplayText="How much to multiply activity amounts by when &quot;held together by {{utilitape|utilitape}}&quot; jostles an item."
         Category="Mod: UD Ductape Mod"
         Type="Combo"
@@ -125,6 +115,7 @@
   
   <option
         ID="Option_UD_Ductape_Mod_AnyNumberOfMods"
+        Requires="Option_UD_Ductape_Mod_DamageMaxHPMultiplier!=0"
         DisplayText="Enable &quot;held together by {{utilitape|utilitape}}&quot; to be applied before an item has the maximum mods applied."
         Category="Mod: UD Ductape Mod"
         Type="Checkbox"
@@ -142,7 +133,7 @@
   
   <option
         ID="Option_UD_Ductape_Mod_ScalingDamageChance"
-		    Requires="Option_UD_Ductape_Mod_AnyNumberOfMods==Yes"
+		    Requires="Option_UD_Ductape_Mod_DamageMaxHPMultiplier!=0,Option_UD_Ductape_Mod_AnyNumberOfMods==Yes"
         DisplayText="Enable scaling the chance &quot;held together by utilittape&quot; will damage an item according to how many mods are applied."
         Category="Mod: UD Ductape Mod"
         Type="Checkbox"
@@ -158,6 +149,39 @@
       {{R|4}}: 1/1 as likely (capped)
 
       The default is {{w|Disabled}}.
+    </helptext>
+  </option>
+  <option
+        ID="Option_UD_Ductape_Mod_EnableJostledPopups"
+        Requires="Option_UD_Ductape_Mod_DamageMaxHPMultiplier!=0"
+        DisplayText="Enable popup messages for when and item is damaged by being {{utilitape|jostled}}."
+        Category="Mod: UD Ductape Mod"
+        Type="Checkbox"
+        Default="Yes" >
+    <helptext>
+      When enabled, items that take damage from &quot;held together by {{utilitape|utilitape}}&quot; jostling them will have this fact announced by a popup, and will interrupt any auto-actions.
+
+      It can be useful information to know when an item has {{r|taken damage}}, however this can get a little spammy when there are several items all being jostled at once during chaotic situations.
+
+      You'll always be warned if an item being jostled has broken the item, or if taking jostle damage again will destroy it.
+
+      The default is {{W|Enabled}}.
+    </helptext>
+  </option>
+
+  <option
+        ID="Option_UD_Ductape_Mod_EnableJostledPopupsForImportant"
+		    Requires="Option_UD_Ductape_Mod_DamageMaxHPMultiplier!=0,Option_UD_Ductape_Mod_EnableJostledPopups==No"
+        DisplayText="Enable the above disabled popups for items marked &quot;Important&quot;."
+        Category="Mod: UD Ductape Mod"
+        Type="Checkbox"
+        Default="Yes" >
+    <helptext>
+      When enabled, you'll get the above disabled popups for items you've marked &quot;Important&quot; but no others.
+
+      You'll always be warned if an item being jostled has broken the item, or if taking jostle damage again will destroy it.
+
+      The default is {{W|Enabled}}.
     </helptext>
   </option>
 

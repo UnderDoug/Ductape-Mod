@@ -2,7 +2,7 @@
     "id": "ud_ductape_mod",
     "title": "{{utilitape|Ductape}} {{y|Mod}}",
     "description": "Adds an applicator-only modification, {{y|held together by {{utlitlitape|utilitape}}}}, which allows an item to be modified one additional time (excluding {{utlitlitape|utilitape}} itself) but results in a chance whenever the item is used for it to take damage equal to 1/4 of its max hitpoints!",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "author": "{{K-g-G-Y-G-g-K alternation|UnderDoug}}",
     "tags": "Modification,Balance,Harmony",
     "PreviewImage": "Preview.png"

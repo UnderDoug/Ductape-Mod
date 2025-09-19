@@ -76,12 +76,13 @@ namespace XRL.World
 
             UD_JostleObjectEvent E = FromPool();
 
+            E.Item = Item;
+            E.Activity = Activity;
+
             bool jostle = Item != null;
 
             if (jostle && Item.WantEvent(ID, E.GetCascadeLevel()))
             {
-                E.Item = Item;
-                E.Activity = Activity;
                 jostle = Item.HandleEvent(E);
             }
             if (jostle && Item.HasRegisteredEvent(E.GetRegisteredEventID()))
